@@ -198,9 +198,7 @@ function tcu_person_schema_books() {
 			'price'          => '9.99',
 			'sameAs'         => array(
 				'https://www.goodreads.com/book/show/256793045-the-carrot-underground-cookbook---volume-two',
-				// Volume Two's Google Play Books link goes here. Only Volume One's was
-				// supplied (id=RzH1EQAAQBAJ) and I could not confirm Volume Two's id
-				// without guessing, so it is left out rather than guessed at.
+				'https://play.google.com/store/books/details?id=OzX1EQAAQBAJ',
 			),
 		),
 

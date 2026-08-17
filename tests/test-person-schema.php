@@ -353,6 +353,8 @@ foreach ( $with_books as $piece ) {
 
 is_same( count( $books ), 2, 'both cookbooks are in the graph' );
 
+$GLOBALS['play_ids'] = array();
+
 foreach ( $books as $book ) {
 	$label = 'Volume ' . ( false !== strpos( $book['@id'], 'volume-one' ) ? 'One' : 'Two' );
 
@@ -364,10 +366,25 @@ foreach ( $books as $book ) {
 	is_same( $book['offers']['priceCurrency'], 'USD', "$label: offer currency is set" );
 	is_same( $book['offers']['seller'], array( '@id' => TCU_ORGANIZATION_ID ), "$label: the seller is the Organization" );
 
+	// Each volume must carry its OWN Play Books id. Pasting the same one twice is the
+	// obvious mistake here and it would merge the two books in Google's eyes.
+	$play = array_values( array_filter( $book['sameAs'], function ( $u ) { return false !== strpos( $u, 'play.google.com' ); } ) );
+	is_same( count( $play ), 1, "$label: has exactly one Google Play Books listing" );
+	$GLOBALS['play_ids'][] = $play[0];
+
+	$gr = array_values( array_filter( $book['sameAs'], function ( $u ) { return false !== strpos( $u, 'goodreads.com' ); } ) );
+	is_same( count( $gr ), 1, "$label: has exactly one Goodreads listing" );
+
 	// A Book whose author is spelled out inline instead of referenced would create a
 	// second Connie. This is the assertion that catches that regression.
 	ok( ! isset( $book['author']['name'] ), "$label: the author is not duplicated as a literal Person" );
 }
+
+is_same(
+	count( array_unique( $GLOBALS['play_ids'] ) ),
+	2,
+	'the two volumes point at DIFFERENT Play Books listings, not the same id pasted twice'
+);
 
 $people = 0;
 foreach ( $with_books as $piece ) {

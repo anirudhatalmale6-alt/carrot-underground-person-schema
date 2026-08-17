@@ -107,7 +107,7 @@ Knowledge Panel bid, that is the point.
 | Pages | 63 | 70 |
 | Price | $9.99 | $9.99 |
 | Goodreads | [256792999](https://www.goodreads.com/book/show/256792999-the-carrot-underground-cookbook---volume-one) | [256793045](https://www.goodreads.com/book/show/256793045-the-carrot-underground-cookbook---volume-two) |
-| Google Play Books | `RzH1EQAAQBAJ` | **still needed** |
+| Google Play Books | `RzH1EQAAQBAJ` | `OzX1EQAAQBAJ` |
 
 Publication dates and page counts are from Goodreads. Note these are *not* the Shopify
 `published_at` dates (2024-10-23 and 2024-11-25) — those are when the products were listed
@@ -122,11 +122,11 @@ Two things deliberately left out:
   is an offer covering both titles rather than a third distinct work, so it is not its own
   `Book`. It could be added as a second `Offer` if wanted.
 
-**Google Play Books — one of two.** Volume One's Play listing (`id=RzH1EQAAQBAJ`, confirmed
-as Volume One from the page title) is in `sameAs`. Volume Two's is still needed. It is not
-guessed at: the Google Books API returns HTTP 429 quota errors on every query, confirmed
-with a control search for a well-known title, so nothing can be verified from here. Send
-the URL and it goes straight in.
+**Google Play Books.** Both listings are in `sameAs`. Each id was confirmed by fetching the
+Play page and reading its title rather than trusting the order they arrived in — a swapped
+pair would have told Google each book was the other one. A test asserts the two volumes
+carry different Play ids, since pasting the same one twice is the easy mistake here and it
+would merge the two books into one entity.
 
 ---
 
@@ -281,7 +281,7 @@ hand Google the same entity on every URL with no single place that owns it.
 php tests/test-person-schema.php
 ```
 
-116 assertions, no WordPress or Yoast install required. (`tests/test-book-on-own-page.php`
+121 assertions, no WordPress or Yoast install required. (`tests/test-book-on-own-page.php`
 runs as a second process because it has to redefine the book list before the plugin loads;
 the main suite invokes it and folds in its results.) The WordPress functions the snippet
 calls are stubbed and the filter is run against `tests/fixture-live-graph.json` — the real

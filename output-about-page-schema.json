@@ -248,7 +248,8 @@
             "numberOfPages": 70,
             "genre": "Vegan cookbook",
             "sameAs": [
-                "https://www.goodreads.com/book/show/256793045-the-carrot-underground-cookbook---volume-two"
+                "https://www.goodreads.com/book/show/256793045-the-carrot-underground-cookbook---volume-two",
+                "https://play.google.com/store/books/details?id=OzX1EQAAQBAJ"
             ],
             "about": {
                 "@type": "Thing",
