@@ -1,0 +1,348 @@
+<?php
+/**
+ * Standalone test harness for tcu-person-schema.php.
+ *
+ * There is no WordPress and no Yoast here. Instead the handful of WordPress
+ * functions the snippet actually calls are stubbed, and the filter is fed the
+ * real @graph captured from the live About page
+ * (tests/fixture-live-graph.json, pulled 2026-08-17) so the assertions run
+ * against the exact structure Yoast is producing on the site today.
+ *
+ * Run:  php tests/test-person-schema.php
+ */
+
+define( 'ABSPATH', __DIR__ . '/' );
+
+/* ---------------------------------------------------------------- *
+ * WordPress stubs
+ * ---------------------------------------------------------------- */
+
+/**
+ * The page currently being rendered, as WordPress would see it: ID, slug, title.
+ * The real is_page() matches any of the three, so the stub does too.
+ */
+$GLOBALS['stub_current_page'] = array( 1003, 'about-connie-edwards-mcgaughy', 'About Connie Edwards McGaughy' );
+$GLOBALS['stub_filters']      = array();
+
+function is_page( $page ) {
+	foreach ( (array) $page as $candidate ) {
+		if ( in_array( $candidate, $GLOBALS['stub_current_page'], true ) ) {
+			return true;
+		}
+	}
+	return false;
+}
+
+function get_permalink() {
+	return 'https://thecarrotunderground.com/' . $GLOBALS['stub_current_page'][1] . '/';
+}
+
+function add_filter( $hook, $callback, $priority = 10, $args = 1 ) {
+	$GLOBALS['stub_filters'][ $hook ][] = $callback;
+	return true;
+}
+
+require __DIR__ . '/../tcu-person-schema.php';
+
+/* ---------------------------------------------------------------- *
+ * Tiny assertion helpers
+ * ---------------------------------------------------------------- */
+
+$GLOBALS['pass'] = 0;
+$GLOBALS['fail'] = 0;
+
+function ok( $condition, $label ) {
+	if ( $condition ) {
+		$GLOBALS['pass']++;
+		echo "  PASS  $label\n";
+		return;
+	}
+	$GLOBALS['fail']++;
+	echo "  FAIL  $label\n";
+}
+
+function is_same( $actual, $expected, $label ) {
+	if ( $actual === $expected ) {
+		$GLOBALS['pass']++;
+		echo "  PASS  $label\n";
+		return;
+	}
+	$GLOBALS['fail']++;
+	echo "  FAIL  $label\n";
+	echo "        expected: " . json_encode( $expected ) . "\n";
+	echo "        actual:   " . json_encode( $actual ) . "\n";
+}
+
+function heading( $text ) {
+	echo "\n$text\n";
+}
+
+function live_graph() {
+	return json_decode( file_get_contents( __DIR__ . '/fixture-live-graph.json' ), true );
+}
+
+function node_by_id( array $graph, $id ) {
+	foreach ( $graph as $piece ) {
+		if ( isset( $piece['@id'] ) && $piece['@id'] === $id ) {
+			return $piece;
+		}
+	}
+	return null;
+}
+
+function node_by_type( array $graph, $type ) {
+	foreach ( $graph as $piece ) {
+		if ( in_array( $type, (array) $piece['@type'], true ) ) {
+			return $piece;
+		}
+	}
+	return null;
+}
+
+/**
+ * Walk the whole structure and collect every { "@id": "..." } that is used as a
+ * pure reference (an object whose only key is @id).
+ */
+function collect_references( $node, array &$found ) {
+	if ( ! is_array( $node ) ) {
+		return;
+	}
+	if ( isset( $node['@id'] ) && 1 === count( $node ) ) {
+		$found[] = $node['@id'];
+		return;
+	}
+	foreach ( $node as $value ) {
+		collect_references( $value, $found );
+	}
+}
+
+/* ================================================================ *
+ * 1. The About page
+ * ================================================================ */
+
+heading( '1. On the About page' );
+
+$GLOBALS['stub_current_page'] = array( 1003, 'about-connie-edwards-mcgaughy', 'About Connie Edwards McGaughy' );
+
+$before = live_graph();
+$after  = tcu_person_schema_filter_graph( $before );
+
+ok( null === node_by_type( $before, 'Person' ), 'live graph has no Person today (the problem being fixed)' );
+
+$person = node_by_id( $after, TCU_PERSON_ID );
+ok( null !== $person, 'a Person node is added' );
+is_same( count( $after ), count( $before ) + 1, 'exactly one node is added, nothing is dropped' );
+is_same( $person['@type'], 'Person', 'it is typed Person' );
+is_same( $person['name'], 'Connie Edwards McGaughy', 'name is set' );
+ok( ! empty( $person['jobTitle'] ), 'jobTitle is set' );
+is_same( $person['worksFor'], array( '@id' => TCU_ORGANIZATION_ID ), 'worksFor references the existing Organization' );
+is_same( $person['affiliation'], array( '@id' => TCU_ORGANIZATION_ID ), 'affiliation references the existing Organization' );
+
+is_same(
+	$person['url'],
+	'https://thecarrotunderground.com/about-connie-edwards-mcgaughy/',
+	'url is the clean page URL with no #fragment'
+);
+
+is_same(
+	$person['image'],
+	array( '@id' => 'https://thecarrotunderground.com/about-connie-edwards-mcgaughy/#primaryimage' ),
+	'image reuses the ImageObject Yoast already emits (no duplicate ImageObject)'
+);
+
+$image_nodes = 0;
+foreach ( $after as $piece ) {
+	if ( in_array( 'ImageObject', (array) $piece['@type'], true ) ) {
+		$image_nodes++;
+	}
+}
+is_same( $image_nodes, 1, 'still only one ImageObject in the graph' );
+
+heading( '2. The ProfilePage points at the Person' );
+
+$profile = node_by_type( $after, 'ProfilePage' );
+ok( null !== $profile, 'the ProfilePage piece is still there' );
+is_same( $profile['mainEntity'], array( '@id' => TCU_PERSON_ID ), 'ProfilePage.mainEntity references the Person' );
+is_same(
+	$person['mainEntityOfPage'],
+	array( '@id' => 'https://thecarrotunderground.com/about-connie-edwards-mcgaughy/' ),
+	'Person.mainEntityOfPage points back at the page (link closed in both directions)'
+);
+
+heading( '3. Yoast\'s own pieces survive untouched' );
+
+foreach ( array( 'WebSite', 'BreadcrumbList', 'ImageObject' ) as $type ) {
+	is_same(
+		node_by_type( $after, $type ),
+		node_by_type( $before, $type ),
+		"$type piece is byte-for-byte unchanged"
+	);
+}
+
+$org_before = node_by_id( $before, TCU_ORGANIZATION_ID );
+$org_after  = node_by_id( $after, TCU_ORGANIZATION_ID );
+
+is_same( $org_after['founder'], array( '@id' => TCU_PERSON_ID ), 'Organization gains founder -> Person' );
+unset( $org_after['founder'] );
+is_same( $org_after, $org_before, 'founder is the ONLY change to the Organization node' );
+
+$profile_before = node_by_type( $before, 'ProfilePage' );
+$profile_after  = node_by_type( $after, 'ProfilePage' );
+unset( $profile_after['mainEntity'] );
+is_same( $profile_after, $profile_before, 'mainEntity is the ONLY change to the ProfilePage node' );
+
+$types_before = array();
+$types_after  = array();
+foreach ( $before as $p ) { $types_before[] = json_encode( $p['@type'] ); }
+foreach ( $after as $p )  { $types_after[]  = json_encode( $p['@type'] ); }
+is_same( count( array_diff( $types_before, $types_after ) ), 0, 'no existing entity type disappeared' );
+
+heading( '4. No dangling @id references' );
+
+$ids = array();
+foreach ( $after as $piece ) {
+	if ( isset( $piece['@id'] ) ) {
+		$ids[] = $piece['@id'];
+	}
+	// Nested nodes that declare their own @id (Yoast's logo) count too.
+	foreach ( $piece as $value ) {
+		if ( is_array( $value ) && isset( $value['@id'], $value['@type'] ) ) {
+			$ids[] = $value['@id'];
+		}
+	}
+}
+
+$refs = array();
+collect_references( $after, $refs );
+$dangling = array_values( array_unique( array_diff( $refs, $ids ) ) );
+
+ok( ! empty( $refs ), 'the graph does use @id references' );
+is_same( $dangling, array(), 'every @id reference resolves to a node in the same graph' );
+is_same( count( $ids ), count( array_unique( $ids ) ), 'no two nodes share an @id' );
+
+heading( '5. sameAs hygiene' );
+
+is_same(
+	count( $person['sameAs'] ),
+	count( array_unique( $person['sameAs'] ) ),
+	'no duplicate sameAs entries'
+);
+
+$bad = array();
+foreach ( $person['sameAs'] as $url ) {
+	if ( 0 !== strpos( $url, 'https://' ) || false !== strpos( $url, ' ' ) ) {
+		$bad[] = $url;
+	}
+}
+is_same( $bad, array(), 'every sameAs is an absolute https URL' );
+
+ok(
+	in_array( 'https://www.goodreads.com/author/show/71756303.Connie_Edwards_McGaughy', $person['sameAs'], true ),
+	'the Goodreads author profile is present, as the canonical URL rather than the redirect'
+);
+ok(
+	in_array( 'https://www.linkedin.com/in/connie-edwards-mcgaughy', $person['sameAs'], true ),
+	'the personal LinkedIn profile now lives on the Person'
+);
+
+heading( '6. Every other page is left alone' );
+
+$GLOBALS['stub_current_page'] = array( 55, 'some-recipe-page', 'Some Recipe' );
+
+$other_before = live_graph();
+$other_after  = tcu_person_schema_filter_graph( $other_before );
+
+is_same( $other_after, $other_before, 'graph is returned completely unmodified off the About page' );
+ok( null === node_by_type( $other_after, 'Person' ), 'no Person node is emitted site-wide' );
+
+heading( '7. Running twice cannot duplicate the entity' );
+
+$GLOBALS['stub_current_page'] = array( 1003, 'about-connie-edwards-mcgaughy', 'About Connie Edwards McGaughy' );
+
+$once  = tcu_person_schema_filter_graph( live_graph() );
+$twice = tcu_person_schema_filter_graph( $once );
+
+is_same( $twice, $once, 'a second pass is a no-op' );
+
+$people = 0;
+foreach ( $twice as $piece ) {
+	if ( in_array( 'Person', (array) $piece['@type'], true ) ) {
+		$people++;
+	}
+}
+is_same( $people, 1, 'exactly one Person in the graph' );
+
+heading( '8. Degraded input does not produce broken output' );
+
+$no_image = array_values(
+	array_filter(
+		live_graph(),
+		function ( $piece ) {
+			return ! in_array( 'ImageObject', (array) $piece['@type'], true );
+		}
+	)
+);
+$no_image_after  = tcu_person_schema_filter_graph( $no_image );
+$no_image_person = node_by_id( $no_image_after, TCU_PERSON_ID );
+
+is_same( $no_image_person['image']['@type'], 'ImageObject', 'with no #primaryimage to reuse, a self-contained ImageObject is emitted instead' );
+
+/**
+ * This fixture is deliberately broken - the ImageObject was ripped out from under
+ * Yoast's own WebPage node, which still references #primaryimage. So the question
+ * is not "are there dangling references" (there are, and they are not ours) but
+ * "did we ADD any". The set of broken references must not grow.
+ */
+function dangling_refs( array $graph ) {
+	$ids = array();
+	foreach ( $graph as $piece ) {
+		if ( isset( $piece['@id'] ) ) { $ids[] = $piece['@id']; }
+		foreach ( $piece as $value ) {
+			if ( is_array( $value ) && isset( $value['@id'], $value['@type'] ) ) { $ids[] = $value['@id']; }
+		}
+	}
+	$refs = array();
+	collect_references( $graph, $refs );
+	return array_values( array_unique( array_diff( $refs, $ids ) ) );
+}
+
+is_same(
+	array_values( array_diff( dangling_refs( $no_image_after ), dangling_refs( $no_image ) ) ),
+	array(),
+	'the Person node introduces no new dangling reference into the degraded graph'
+);
+
+$no_org = array_values(
+	array_filter(
+		live_graph(),
+		function ( $piece ) {
+			return ! in_array( 'Organization', (array) $piece['@type'], true );
+		}
+	)
+);
+$no_org_person = node_by_id( tcu_person_schema_filter_graph( $no_org ), TCU_PERSON_ID );
+ok( ! isset( $no_org_person['worksFor'] ), 'if the Organization is ever removed, worksFor is omitted rather than left dangling' );
+
+$empty_after = tcu_person_schema_filter_graph( array() );
+is_same( count( $empty_after ), 1, 'an empty graph still yields a valid Person' );
+ok( ! isset( $empty_after[0]['mainEntityOfPage'] ), 'and no reference to a page that is not there' );
+
+heading( '9. The output is serialisable JSON-LD' );
+
+$json = json_encode(
+	array( '@context' => 'https://schema.org', '@graph' => $once ),
+	JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT
+);
+
+ok( false !== $json, 'the graph encodes to JSON without error' );
+ok( null !== json_decode( $json, true ), 'and decodes back cleanly' );
+
+file_put_contents( __DIR__ . '/../output-about-page-schema.json', $json . "\n" );
+
+/* ---------------------------------------------------------------- */
+
+echo "\n" . str_repeat( '-', 60 ) . "\n";
+printf( "%d passed, %d failed\n", $GLOBALS['pass'], $GLOBALS['fail'] );
+echo str_repeat( '-', 60 ) . "\n";
+
+exit( $GLOBALS['fail'] > 0 ? 1 : 0 );
