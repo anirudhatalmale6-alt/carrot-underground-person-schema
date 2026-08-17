@@ -98,9 +98,16 @@ function tcu_person_schema_definition() {
 		),
 
 		// Profiles that identify Connie as a person / author.
-		// Note the Goodreads entry: the canonical author URL is used rather than the
+		//
+		// WikiData first: it is the one entry here that Google's Knowledge Graph reads
+		// directly rather than merely as corroboration, so it carries the most weight.
+		// Q138577229 was located on wikidata.org on 2026-08-17 - instance of human,
+		// official website already pointing at thecarrotunderground.com.
+		//
+		// The Goodreads entry is the canonical author URL rather than the
 		// /veganconnie vanity URL, which is a 301 redirect to this address.
 		'sameAs'      => array(
+			'https://www.wikidata.org/wiki/Q138577229',
 			'https://www.facebook.com/thecarrotunderground/',
 			'https://x.com/veganconnie',
 			'https://www.instagram.com/thecarrotunderground/',
@@ -108,8 +115,6 @@ function tcu_person_schema_definition() {
 			'https://www.pinterest.com/thecarrotunderground',
 			'https://www.youtube.com/channel/UC0l81mHV9MdJXko-yrVphug',
 			'https://www.goodreads.com/author/show/71756303.Connie_Edwards_McGaughy',
-			// Add the WikiData entry here once you have its Q-number URL, e.g.
-			// 'https://www.wikidata.org/wiki/Q123456789',
 		),
 
 		// Uncomment to publish a coarse location. Nothing more precise than

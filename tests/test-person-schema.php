@@ -244,6 +244,15 @@ ok(
 	in_array( 'https://www.linkedin.com/in/connie-edwards-mcgaughy', $person['sameAs'], true ),
 	'the personal LinkedIn profile now lives on the Person'
 );
+ok(
+	in_array( 'https://www.wikidata.org/wiki/Q138577229', $person['sameAs'], true ),
+	'the WikiData item is present'
+);
+is_same(
+	$person['sameAs'][0],
+	'https://www.wikidata.org/wiki/Q138577229',
+	'WikiData is listed first - the strongest signal in the list'
+);
 
 heading( '6. Every other page is left alone' );
 

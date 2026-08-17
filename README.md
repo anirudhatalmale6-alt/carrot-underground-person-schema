@@ -106,9 +106,30 @@ hand Google the same entity on every URL with no single place that owns it.
   on the `Person`. It is still on Yoast's `Organization` `sameAs` as well — that list is
   managed in the Yoast admin UI and this snippet deliberately does not touch it. Removing
   it there is a one-click change if wanted.
-- **WikiData.** Not included yet — the Q-number URL was not in the supplied list. There is a
-  commented placeholder in the `sameAs` array. This is the single strongest `sameAs` signal
-  available, so it is worth adding.
+- **WikiData.** `https://www.wikidata.org/wiki/Q138577229`, located on wikidata.org and
+  listed first in `sameAs`. It is the one entry Google's Knowledge Graph reads directly
+  rather than merely as corroboration. The item already carries `instance of: human`,
+  occupations, US citizenship, San Diego as residence, and `official website` →
+  `thecarrotunderground.com`.
+
+  The link is currently one-way in places. To strengthen it, add these external-ID
+  statements to the WikiData item so it corroborates the same profile list the site
+  publishes:
+
+  | Property | Value |
+  | --- | --- |
+  | P973 described at URL | `https://thecarrotunderground.com/about-connie-edwards-mcgaughy/` |
+  | P2002 X/Twitter username | `veganconnie` |
+  | P2003 Instagram username | `thecarrotunderground` |
+  | P2013 Facebook ID | `thecarrotunderground` |
+  | P2397 YouTube channel ID | `UC0l81mHV9MdJXko-yrVphug` |
+  | P2963 Goodreads author ID | `71756303` |
+  | P6634 LinkedIn personal profile ID | `connie-edwards-mcgaughy` |
+
+  Worth knowing: WikiData items about living people need a serious, publicly available
+  source to survive a notability challenge. The item has no references on it at the moment.
+  If it is ever deleted, the `sameAs` entry becomes a dead link — so the published cookbooks
+  are worth citing on it.
 
 ---
 
@@ -118,7 +139,7 @@ hand Google the same entity on every URL with no single place that owns it.
 php tests/test-person-schema.php
 ```
 
-39 assertions, no WordPress or Yoast install required. The WordPress functions the snippet
+41 assertions, no WordPress or Yoast install required. The WordPress functions the snippet
 calls are stubbed and the filter is run against `tests/fixture-live-graph.json` — the real
 `@graph` captured from the live About page on 2026-08-17 — so the assertions run against the
 exact structure Yoast is producing on the site today, not an idealised version of it.
