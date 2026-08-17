@@ -131,7 +131,7 @@ ok( null === node_by_type( $before, 'Person' ), 'live graph has no Person today 
 
 $person = node_by_id( $after, TCU_PERSON_ID );
 ok( null !== $person, 'a Person node is added' );
-is_same( count( $after ), count( $before ) + 3, 'three nodes are added - the Person and the two Books - and nothing is dropped' );
+is_same( count( $after ), count( $before ) + 10, 'ten nodes are added - the Person, two Books, seven press articles - and nothing is dropped' );
 is_same( $person['@type'], 'Person', 'it is typed Person' );
 is_same( $person['name'], 'Connie Edwards McGaughy', 'name is set' );
 ok( ! empty( $person['jobTitle'] ), 'jobTitle is set' );
@@ -188,8 +188,8 @@ is_same( $org_after, $org_before, 'founder is the ONLY change to the Organizatio
 
 $profile_before = node_by_type( $before, 'ProfilePage' );
 $profile_after  = node_by_type( $after, 'ProfilePage' );
-unset( $profile_after['mainEntity'], $profile_after['mentions'] );
-is_same( $profile_after, $profile_before, 'mainEntity and mentions are the ONLY changes to the ProfilePage node' );
+unset( $profile_after['mainEntity'], $profile_after['mentions'], $profile_after['citation'] );
+is_same( $profile_after, $profile_before, 'mainEntity, mentions and citation are the ONLY changes to the ProfilePage node' );
 
 $types_before = array();
 $types_after  = array();
@@ -333,7 +333,7 @@ $no_org_person = node_by_id( tcu_person_schema_filter_graph( $no_org ), TCU_PERS
 ok( ! isset( $no_org_person['worksFor'] ), 'if the Organization is ever removed, worksFor is omitted rather than left dangling' );
 
 $empty_after = tcu_person_schema_filter_graph( array() );
-is_same( count( $empty_after ), 3, 'an empty graph still yields the Person and both Books' );
+is_same( count( $empty_after ), 10, 'an empty graph still yields the Person, both Books and all seven press articles' );
 ok( ! isset( $empty_after[0]['mainEntityOfPage'] ), 'and no reference to a page that is not there' );
 ok( ! isset( $empty_after[1]['publisher'] ), 'with no Organization present, the Books omit publisher rather than dangling' );
 is_same( dangling_refs( $empty_after ), array(), 'and the Book author references still resolve' );
@@ -387,7 +387,57 @@ is_same(
 
 is_same( dangling_refs( $with_books ), array(), 'no dangling references once the books are added' );
 
-heading( '10. The output is serialisable JSON-LD' );
+heading( '10. Press coverage' );
+
+$press = array();
+foreach ( $with_books as $piece ) {
+	if ( in_array( 'Article', (array) $piece['@type'], true ) ) {
+		$press[] = $piece;
+	}
+}
+
+is_same( count( $press ), 7, 'seven press articles - the two that never mention her are excluded' );
+
+$urls = array();
+foreach ( $press as $article ) {
+	$urls[] = $article['url'];
+
+	$label = basename( parse_url( $article['url'], PHP_URL_PATH ) );
+
+	// The assertion that matters most in this whole file.
+	ok(
+		isset( $article['author']['name'] ) && 'Connie Edwards McGaughy' !== $article['author']['name'],
+		"$label: credited to the real journalist, NOT to Connie"
+	);
+	is_same( $article['mentions'], array( '@id' => TCU_PERSON_ID ), "$label: linked to Connie via mentions, not author" );
+	ok( ! empty( $article['publisher']['name'] ), "$label: publisher is named" );
+	ok( ! empty( $article['datePublished'] ), "$label: datePublished is set" );
+	ok( 0 === strpos( $article['@id'], 'https://thecarrotunderground.com/#/schema/press/' ), "$label: @id is a local fragment, not a claim on the publisher's own URL" );
+}
+
+foreach ( array( 'ftw.usatoday.com', 'cnn.com' ) as $excluded ) {
+	$found = false;
+	foreach ( $urls as $u ) {
+		if ( false !== strpos( $u, $excluded ) ) {
+			$found = true;
+		}
+	}
+	ok( ! $found, "$excluded is not marked up - the page never mentions her" );
+}
+
+$page_with_press = node_by_type( $with_books, 'ProfilePage' );
+is_same( count( $page_with_press['citation'] ), 7, 'the page cites all seven' );
+is_same( dangling_refs( $with_books ), array(), 'no dangling references once press is added' );
+
+$people = 0;
+foreach ( $with_books as $piece ) {
+	if ( in_array( 'Person', (array) $piece['@type'], true ) && isset( $piece['@id'] ) ) {
+		$people++;
+	}
+}
+is_same( $people, 1, 'the journalists do not become extra Person nodes in the graph' );
+
+heading( '11. The output is serialisable JSON-LD' );
 
 $json = json_encode(
 	array( '@context' => 'https://schema.org', '@graph' => $once ),

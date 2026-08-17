@@ -44,6 +44,29 @@
                 {
                     "@id": "https://thecarrotunderground.com/#/schema/book/carrot-underground-cookbook-volume-two"
                 }
+            ],
+            "citation": [
+                {
+                    "@id": "https://thecarrotunderground.com/#/schema/press/aarp-clever-ways-to-cook-carrots"
+                },
+                {
+                    "@id": "https://thecarrotunderground.com/#/schema/press/aarp-white-bean-recipes"
+                },
+                {
+                    "@id": "https://thecarrotunderground.com/#/schema/press/huffpost-egg-substitutes"
+                },
+                {
+                    "@id": "https://thecarrotunderground.com/#/schema/press/chowhound-original-recipe-mistakes"
+                },
+                {
+                    "@id": "https://thecarrotunderground.com/#/schema/press/chowhound-popular-herbs"
+                },
+                {
+                    "@id": "https://thecarrotunderground.com/#/schema/press/chowhound-vegan-baking-staples"
+                },
+                {
+                    "@id": "https://thecarrotunderground.com/#/schema/press/apartmentguide-football-party-ideas"
+                }
             ]
         },
         {
@@ -188,7 +211,8 @@
             "numberOfPages": 63,
             "genre": "Vegan cookbook",
             "sameAs": [
-                "https://www.goodreads.com/book/show/256792999-the-carrot-underground-cookbook---volume-one"
+                "https://www.goodreads.com/book/show/256792999-the-carrot-underground-cookbook---volume-one",
+                "https://play.google.com/store/books/details?id=RzH1EQAAQBAJ"
             ],
             "about": {
                 "@type": "Thing",
@@ -243,6 +267,132 @@
                     "@id": "https://thecarrotunderground.com/#organization"
                 }
             }
+        },
+        {
+            "@type": "Article",
+            "@id": "https://thecarrotunderground.com/#/schema/press/aarp-clever-ways-to-cook-carrots",
+            "url": "https://www.aarp.org/home-living/clever-ways-to-cook-carrots/",
+            "headline": "Clever Ways to Cook Carrots",
+            "author": {
+                "@type": "Person",
+                "name": "Leslie Quander Wooldridge"
+            },
+            "publisher": {
+                "@type": "Organization",
+                "name": "AARP"
+            },
+            "mentions": {
+                "@id": "https://thecarrotunderground.com/about-connie-edwards-mcgaughy/#/schema/person/connie-edwards-mcgaughy"
+            },
+            "datePublished": "2026-01-23"
+        },
+        {
+            "@type": "Article",
+            "@id": "https://thecarrotunderground.com/#/schema/press/aarp-white-bean-recipes",
+            "url": "https://www.aarp.org/home-living/white-bean-recipes/",
+            "headline": "Flavorful, Protein-Packed White Bean Recipes",
+            "author": {
+                "@type": "Person",
+                "name": "Leslie Quander Wooldridge"
+            },
+            "publisher": {
+                "@type": "Organization",
+                "name": "AARP"
+            },
+            "mentions": {
+                "@id": "https://thecarrotunderground.com/about-connie-edwards-mcgaughy/#/schema/person/connie-edwards-mcgaughy"
+            },
+            "datePublished": "2025-11-19"
+        },
+        {
+            "@type": "Article",
+            "@id": "https://thecarrotunderground.com/#/schema/press/huffpost-egg-substitutes",
+            "url": "https://www.huffpost.com/entry/best-egg-substitutes_l_67b78b16e4b01f172607fc6b",
+            "headline": "There\u2019s No Exact Baking Substitute For Eggs \u2014 But These Are Close In A Pinch",
+            "author": {
+                "@type": "Person",
+                "name": "Jamie Davis Smith"
+            },
+            "publisher": {
+                "@type": "Organization",
+                "name": "HuffPost"
+            },
+            "mentions": {
+                "@id": "https://thecarrotunderground.com/about-connie-edwards-mcgaughy/#/schema/person/connie-edwards-mcgaughy"
+            },
+            "datePublished": "2025-02-27"
+        },
+        {
+            "@type": "Article",
+            "@id": "https://thecarrotunderground.com/#/schema/press/chowhound-original-recipe-mistakes",
+            "url": "https://www.chowhound.com/1848295/mistakes-creating-original-recipe/",
+            "headline": "15 Mistakes You're Making When Creating An Original Recipe",
+            "author": {
+                "@type": "Person",
+                "name": "Sarah Moore"
+            },
+            "publisher": {
+                "@type": "Organization",
+                "name": "Chowhound"
+            },
+            "mentions": {
+                "@id": "https://thecarrotunderground.com/about-connie-edwards-mcgaughy/#/schema/person/connie-edwards-mcgaughy"
+            },
+            "datePublished": "2025-05-06"
+        },
+        {
+            "@type": "Article",
+            "@id": "https://thecarrotunderground.com/#/schema/press/chowhound-popular-herbs",
+            "url": "https://www.chowhound.com/1891439/how-to-use-different-herbs/",
+            "headline": "How To Use 14 Popular Herbs To Their Full Potential",
+            "author": {
+                "@type": "Person",
+                "name": "Sarah Moore"
+            },
+            "publisher": {
+                "@type": "Organization",
+                "name": "Chowhound"
+            },
+            "mentions": {
+                "@id": "https://thecarrotunderground.com/about-connie-edwards-mcgaughy/#/schema/person/connie-edwards-mcgaughy"
+            },
+            "datePublished": "2025-06-24"
+        },
+        {
+            "@type": "Article",
+            "@id": "https://thecarrotunderground.com/#/schema/press/chowhound-vegan-baking-staples",
+            "url": "https://www.chowhound.com/1797237/staple-vegan-baking-ingredients/",
+            "headline": "18 Staple Ingredients You Need For Vegan Baking",
+            "author": {
+                "@type": "Person",
+                "name": "Sarah Moore"
+            },
+            "publisher": {
+                "@type": "Organization",
+                "name": "Chowhound"
+            },
+            "mentions": {
+                "@id": "https://thecarrotunderground.com/about-connie-edwards-mcgaughy/#/schema/person/connie-edwards-mcgaughy"
+            },
+            "datePublished": "2025-03-02"
+        },
+        {
+            "@type": "Article",
+            "@id": "https://thecarrotunderground.com/#/schema/press/apartmentguide-football-party-ideas",
+            "url": "https://www.apartmentguide.com/blog/top-football-game-party-ideas/",
+            "headline": "Top Football Game Party Ideas to Score Big with Your Guests",
+            "author": {
+                "@type": "Person",
+                "name": "Freda Nkrumah"
+            },
+            "publisher": {
+                "@type": "Organization",
+                "name": "Apartment Guide"
+            },
+            "mentions": {
+                "@id": "https://thecarrotunderground.com/about-connie-edwards-mcgaughy/#/schema/person/connie-edwards-mcgaughy"
+            },
+            "datePublished": "2024-11-22"
         }
     ]
 }

@@ -180,7 +180,7 @@ function tcu_person_schema_books() {
 			'price'          => '9.99',
 			'sameAs'         => array(
 				'https://www.goodreads.com/book/show/256792999-the-carrot-underground-cookbook---volume-one',
-				// Google Play Books link goes here once you send it.
+				'https://play.google.com/store/books/details?id=RzH1EQAAQBAJ',
 			),
 		),
 
@@ -198,9 +198,116 @@ function tcu_person_schema_books() {
 			'price'          => '9.99',
 			'sameAs'         => array(
 				'https://www.goodreads.com/book/show/256793045-the-carrot-underground-cookbook---volume-two',
-				// Google Play Books link goes here once you send it.
+				// Volume Two's Google Play Books link goes here. Only Volume One's was
+				// supplied (id=RzH1EQAAQBAJ) and I could not confirm Volume Two's id
+				// without guessing, so it is left out rather than guessed at.
 			),
 		),
+
+	);
+}
+endif;
+
+/**
+ * Press coverage: articles by other journalists that quote Connie as an expert.
+ *
+ * READ THIS BEFORE ADDING TO THE LIST.
+ *
+ * Connie is NOT the author of any of these. Every one carries another journalist's
+ * byline and quotes her as a source. So each node credits the real author and
+ * publisher, and links to Connie with "mentions" - the article references her, it was
+ * not written by her and it is not about her.
+ *
+ * Claiming authorship of someone else's article would be false structured data. It is
+ * also the single easiest way to get an entity distrusted, which is the opposite of
+ * what this whole file is for. If you add a row here, open the article first and read
+ * the byline.
+ *
+ * Every URL below is already linked from the About page, so this markup describes
+ * something a reader of that page can actually see and follow.
+ *
+ * Headlines and dates are the publishers' own, taken from their pages rather than from
+ * the summary list, so they match what is actually published.
+ */
+if ( ! function_exists( 'tcu_person_schema_press' ) ) :
+function tcu_person_schema_press() {
+	return array(
+
+		array(
+			'slug'          => 'aarp-clever-ways-to-cook-carrots',
+			'url'           => 'https://www.aarp.org/home-living/clever-ways-to-cook-carrots/',
+			'headline'      => 'Clever Ways to Cook Carrots',
+			'datePublished' => '2026-01-23',
+			'author'        => 'Leslie Quander Wooldridge',
+			'publisher'     => 'AARP',
+		),
+
+		array(
+			'slug'          => 'aarp-white-bean-recipes',
+			'url'           => 'https://www.aarp.org/home-living/white-bean-recipes/',
+			'headline'      => 'Flavorful, Protein-Packed White Bean Recipes',
+			'datePublished' => '2025-11-19',
+			'author'        => 'Leslie Quander Wooldridge',
+			'publisher'     => 'AARP',
+		),
+
+		array(
+			'slug'          => 'huffpost-egg-substitutes',
+			'url'           => 'https://www.huffpost.com/entry/best-egg-substitutes_l_67b78b16e4b01f172607fc6b',
+			'headline'      => 'There’s No Exact Baking Substitute For Eggs — But These Are Close In A Pinch',
+			'datePublished' => '2025-02-27',
+			'author'        => 'Jamie Davis Smith',
+			'publisher'     => 'HuffPost',
+		),
+
+		array(
+			'slug'          => 'chowhound-original-recipe-mistakes',
+			'url'           => 'https://www.chowhound.com/1848295/mistakes-creating-original-recipe/',
+			'headline'      => '15 Mistakes You\'re Making When Creating An Original Recipe',
+			'datePublished' => '2025-05-06',
+			'author'        => 'Sarah Moore',
+			'publisher'     => 'Chowhound',
+		),
+
+		array(
+			'slug'          => 'chowhound-popular-herbs',
+			'url'           => 'https://www.chowhound.com/1891439/how-to-use-different-herbs/',
+			'headline'      => 'How To Use 14 Popular Herbs To Their Full Potential',
+			'datePublished' => '2025-06-24',
+			'author'        => 'Sarah Moore',
+			'publisher'     => 'Chowhound',
+		),
+
+		array(
+			'slug'          => 'chowhound-vegan-baking-staples',
+			'url'           => 'https://www.chowhound.com/1797237/staple-vegan-baking-ingredients/',
+			'headline'      => '18 Staple Ingredients You Need For Vegan Baking',
+			'datePublished' => '2025-03-02',
+			'author'        => 'Sarah Moore',
+			'publisher'     => 'Chowhound',
+		),
+
+		array(
+			'slug'          => 'apartmentguide-football-party-ideas',
+			'url'           => 'https://www.apartmentguide.com/blog/top-football-game-party-ideas/',
+			'headline'      => 'Top Football Game Party Ideas to Score Big with Your Guests',
+			'datePublished' => '2024-11-22',
+			'author'        => 'Freda Nkrumah',
+			'publisher'     => 'Apartment Guide',
+		),
+
+		/*
+		 * DELIBERATELY NOT LISTED - the USA Today "Ted Lasso shortbread biscuits" piece
+		 * and the CNN "6 inexpensive ways to eat healthy at home" piece.
+		 *
+		 * Both were on the supplied list, and both are worth having as backlinks, but
+		 * neither one mentions Connie. I searched the full HTML of each: zero hits for
+		 * "Connie", zero for "McGaughy". What each actually contains is a link to one of
+		 * her recipes - the vegan shortbread on USA Today, the vegan bolognese on CNN.
+		 *
+		 * That is a link to her work, not coverage of her. Listing them as articles that
+		 * mention the person would be asserting something the pages do not say.
+		 */
 
 	);
 }
@@ -319,6 +426,44 @@ function tcu_person_schema_build_book( array $book, array $graph ) {
 }
 
 /**
+ * Build an Article node for one press mention.
+ *
+ * The @id is a fragment on this domain rather than the article's own URL. These are
+ * other publishers' pages; describing them from here is fine, but claiming to be the
+ * canonical definition of their entity is not, and it would collide with whatever
+ * markup they already publish. The real address goes in url.
+ */
+function tcu_person_schema_build_press( array $item ) {
+	$node = array(
+		'@type'    => 'Article',
+		'@id'      => 'https://thecarrotunderground.com/#/schema/press/' . $item['slug'],
+		'url'      => $item['url'],
+		'headline' => $item['headline'],
+
+		// The journalist who wrote it. Never Connie - see the note on
+		// tcu_person_schema_press().
+		'author'   => array(
+			'@type' => 'Person',
+			'name'  => $item['author'],
+		),
+
+		'publisher' => array(
+			'@type' => 'Organization',
+			'name'  => $item['publisher'],
+		),
+
+		// The relationship that is actually true: the article references her.
+		'mentions' => array( '@id' => TCU_PERSON_ID ),
+	);
+
+	if ( ! empty( $item['datePublished'] ) ) {
+		$node['datePublished'] = $item['datePublished'];
+	}
+
+	return $node;
+}
+
+/**
  * Which Books belong on the page being rendered right now?
  */
 function tcu_person_schema_books_for_this_page() {
@@ -416,7 +561,8 @@ function tcu_person_schema_filter_graph( $graph, $context = null ) {
 	if ( ! empty( $added ) ) {
 		// The Book nodes reference the author by @id, so she has to be in this graph.
 		if ( ! $person_present ) {
-			$graph[] = tcu_person_schema_build_person_stub();
+			$graph[]        = tcu_person_schema_build_person_stub();
+			$person_present = true;
 		}
 
 		// The page is what mentions these books - that is why their markup is allowed
@@ -424,6 +570,30 @@ function tcu_person_schema_filter_graph( $graph, $context = null ) {
 		if ( null !== $page_id ) {
 			$existing = isset( $graph[ $page_id ]['mentions'] ) ? (array) $graph[ $page_id ]['mentions'] : array();
 			$graph[ $page_id ]['mentions'] = array_merge( $existing, $added );
+		}
+	}
+
+	/* ---- press coverage ---- */
+
+	// Press lives with the profile: it is evidence about the person, so it belongs
+	// where the person is described, not scattered across the site.
+	if ( $is_profile ) {
+		$cited = array();
+
+		foreach ( tcu_person_schema_press() as $item ) {
+			$node = tcu_person_schema_build_press( $item );
+
+			if ( tcu_person_schema_has_node( $graph, $node['@id'] ) ) {
+				continue;
+			}
+
+			$graph[] = $node;
+			$cited[] = array( '@id' => $node['@id'] );
+		}
+
+		if ( ! empty( $cited ) && null !== $page_id ) {
+			$existing = isset( $graph[ $page_id ]['citation'] ) ? (array) $graph[ $page_id ]['citation'] : array();
+			$graph[ $page_id ]['citation'] = array_merge( $existing, $cited );
 		}
 	}
 

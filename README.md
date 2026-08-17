@@ -107,6 +107,7 @@ Knowledge Panel bid, that is the point.
 | Pages | 63 | 70 |
 | Price | $9.99 | $9.99 |
 | Goodreads | [256792999](https://www.goodreads.com/book/show/256792999-the-carrot-underground-cookbook---volume-one) | [256793045](https://www.goodreads.com/book/show/256793045-the-carrot-underground-cookbook---volume-two) |
+| Google Play Books | `RzH1EQAAQBAJ` | **still needed** |
 
 Publication dates and page counts are from Goodreads. Note these are *not* the Shopify
 `published_at` dates (2024-10-23 and 2024-11-25) — those are when the products were listed
@@ -121,11 +122,65 @@ Two things deliberately left out:
   is an offer covering both titles rather than a third distinct work, so it is not its own
   `Book`. It could be added as a second `Offer` if wanted.
 
-**Google Play Books is missing.** Connie's email says the e-books were accepted to Google
-Play. Those URLs are not in the code because I could not verify them — the Google Books API
-was returning HTTP 429 quota errors on every query, including a control query for a
-well-known title, so a nil result there proves nothing either way. There are commented
-placeholders in both `sameAs` arrays; send the two URLs and they go straight in.
+**Google Play Books — one of two.** Volume One's Play listing (`id=RzH1EQAAQBAJ`, confirmed
+as Volume One from the page title) is in `sameAs`. Volume Two's is still needed. It is not
+guessed at: the Google Books API returns HTTP 429 quota errors on every query, confirmed
+with a control search for a well-known title, so nothing can be verified from here. Send
+the URL and it goes straight in.
+
+---
+
+## Press coverage
+
+Seven articles are emitted as `Article` nodes, defined in `tcu_person_schema_press()`.
+All seven are already linked from the About page, so the markup describes something a
+reader can see and follow.
+
+### Connie did not write any of them
+
+This is the important part, and it is worth being blunt about because the natural
+assumption is the opposite. Every article on the supplied list carries a different
+journalist's byline. Connie is a **quoted expert source**, not the author:
+
+| Article | Actually written by | Publisher |
+| --- | --- | --- |
+| Clever Ways to Cook Carrots | Leslie Quander Wooldridge | AARP |
+| Flavorful, Protein-Packed White Bean Recipes | Leslie Quander Wooldridge | AARP |
+| There's No Exact Baking Substitute For Eggs | Jamie Davis Smith | HuffPost |
+| 15 Mistakes You're Making When Creating An Original Recipe | Sarah Moore | Chowhound |
+| How To Use 14 Popular Herbs To Their Full Potential | Sarah Moore | Chowhound |
+| 18 Staple Ingredients You Need For Vegan Baking | Sarah Moore | Chowhound |
+| Top Football Game Party Ideas | Freda Nkrumah | Apartment Guide |
+
+So each node credits the real journalist in `author`, the outlet in `publisher`, and
+links to Connie with `mentions` — the article references her; it was not written by her
+and it is not about her.
+
+Putting her in `author` would be false structured data about a named third party's work,
+and false markup is the fastest way to get an entity distrusted, which is precisely what
+this whole file exists to avoid. There is an explicit test asserting that no press node
+is ever credited to her.
+
+Being a repeatedly-cited expert source in AARP, HuffPost and Chowhound is a strong
+credibility signal in its own right — arguably stronger than a byline, because someone
+else vouched for the expertise.
+
+### Two articles from the list are deliberately excluded
+
+The USA Today *Ted Lasso shortbread biscuits* piece and the CNN *6 inexpensive ways to
+eat healthy at home* piece are **not** marked up.
+
+Neither one mentions Connie. Searching the full HTML of each gives zero hits for
+"Connie" and zero for "McGaughy". What each actually contains is a link to one of her
+recipes — the vegan shortbread on USA Today, the vegan bolognese on CNN.
+
+That is a link to her work, not coverage of her. They are genuinely valuable backlinks
+and worth keeping on the About page, but listing them as articles that mention the person
+would assert something the pages do not say. Say the word and I will add them, but I would
+not.
+
+The page node gets `citation` pointing at all seven, which is what connects the press to
+the rest of the graph.
 
 ---
 
@@ -226,7 +281,7 @@ hand Google the same entity on every URL with no single place that owns it.
 php tests/test-person-schema.php
 ```
 
-75 assertions, no WordPress or Yoast install required. (`tests/test-book-on-own-page.php`
+116 assertions, no WordPress or Yoast install required. (`tests/test-book-on-own-page.php`
 runs as a second process because it has to redefine the book list before the plugin loads;
 the main suite invokes it and folds in its results.) The WordPress functions the snippet
 calls are stubbed and the filter is run against `tests/fixture-live-graph.json` — the real
@@ -251,6 +306,9 @@ Covered:
   silently create a second Connie
 - a Book moved to its own page keeps its identity, gets a Person stub so nothing dangles,
   does not claim to be that page's `mainEntity`, and does not drag the other book with it
+- no press article is ever credited to Connie as `author`, each is linked to her via
+  `mentions`, and the two articles that do not mention her stay out of the graph
+- the journalists named in press bylines do not leak into the graph as extra `Person` nodes
 
 The generated graph was also run through `validator.schema.org`: **0 errors, 0 warnings**,
 with the `Person` correctly resolving from the `ProfilePage`'s `mainEntity`.
