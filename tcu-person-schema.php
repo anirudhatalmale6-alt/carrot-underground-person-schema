@@ -81,10 +81,18 @@ function tcu_person_schema_definition() {
 		// An array is used rather than one long string so each title is a discrete
 		// value. To go back to a single line, replace the array with the string
 		// 'Vegan Recipe Developer, Author and Food Blogger'.
+		//
+		// These match the titles printed on the About page itself - "Longtime Vegan
+		// Recipe Developer, Cookbook Author, Photographer, Founder of The Carrot
+		// Underground". Structured data should describe what a reader can actually
+		// see on the page, so if that line is reworded, reword this to match.
+		// "Founder" is not repeated here because it is already expressed properly as
+		// the founder edge on the Organization node.
 		'jobTitle'    => array(
 			'Vegan Recipe Developer',
 			'Cookbook Author',
 			'Food Blogger',
+			'Photographer',
 		),
 
 		'description' => 'Connie Edwards McGaughy is a longtime vegan recipe developer, author, and creator of The Carrot Underground, based in San Diego, California.',
@@ -133,6 +141,70 @@ function tcu_person_schema_definition() {
 		// 'alternateName' => 'Vegan Connie',
 	);
 }
+
+/**
+ * The published cookbooks.
+ *
+ * Each entry becomes a Book node authored by the Person above. Because both point
+ * at TCU_PERSON_ID rather than restating her details, Google reads them as three
+ * facts about one author rather than as three unrelated pages.
+ *
+ * 'page' is where each Book's node is emitted. Both currently sit on the About
+ * page, which is honest - that page's copy says "I recently published my first two
+ * vegan e-cookbooks" and links to the shop, so the markup matches what a reader
+ * can actually see. When the dedicated cookbook pages go live, change 'page' to
+ * that page's ID and the Book moves with it. Nothing else needs touching: the
+ * author link travels with the node.
+ *
+ * The @ids are rooted at the domain rather than at the About page, precisely so
+ * that move does not change the identity of the Book.
+ *
+ * Wrapped in function_exists so the list can be overridden from elsewhere without
+ * editing this file.
+ */
+if ( ! function_exists( 'tcu_person_schema_books' ) ) :
+function tcu_person_schema_books() {
+	return array(
+
+		array(
+			'page'           => TCU_PERSON_PAGE,
+			'@id'            => 'https://thecarrotunderground.com/#/schema/book/carrot-underground-cookbook-volume-one',
+			'name'           => 'The Carrot Underground Cookbook - Volume One: How to Host Plant-Based Parties Everyone Will Love',
+			'description'    => 'Your essential companion for hosting unforgettable, 100% plant-based gatherings that everyone, vegan or not, will love. Connie Edwards McGaughy shares her favorite recipes, top tips and ideas for creating entirely plant-based parties.',
+			'url'            => 'https://qf01dx-q0.myshopify.com/products/the-carrot-underground-digital-cookbook-volume-one',
+			'image'          => 'https://cdn.shopify.com/s/files/1/0720/4886/9602/files/TCU-Cookbook-Vol-1-Cover.png?v=1729902018',
+			'datePublished'  => '2024-10-01',
+			'numberOfPages'  => 63,
+			'genre'          => 'Vegan cookbook',
+			'about'          => 'Vegan entertaining',
+			'price'          => '9.99',
+			'sameAs'         => array(
+				'https://www.goodreads.com/book/show/256792999-the-carrot-underground-cookbook---volume-one',
+				// Google Play Books link goes here once you send it.
+			),
+		),
+
+		array(
+			'page'           => TCU_PERSON_PAGE,
+			'@id'            => 'https://thecarrotunderground.com/#/schema/book/carrot-underground-cookbook-volume-two',
+			'name'           => 'The Carrot Underground Cookbook - Volume Two: How to Bake the Best Vegan Desserts and Treats',
+			'description'    => 'Everything you need for creating mouth-watering vegan desserts that everyone, even non-vegans, will adore. Connie Edwards McGaughy guides seasoned and first-time bakers through the art of baking without eggs or dairy.',
+			'url'            => 'https://qf01dx-q0.myshopify.com/products/the-carrot-underground-cookbook-volume-two-how-to-bake-the-best-vegan-desserts-treats',
+			'image'          => 'https://cdn.shopify.com/s/files/1/0720/4886/9602/files/TCU-Cookbook-Vol-Two-Cover.jpg?v=1732579285',
+			'datePublished'  => '2024-11-01',
+			'numberOfPages'  => 70,
+			'genre'          => 'Vegan cookbook',
+			'about'          => 'Vegan baking',
+			'price'          => '9.99',
+			'sameAs'         => array(
+				'https://www.goodreads.com/book/show/256793045-the-carrot-underground-cookbook---volume-two',
+				// Google Play Books link goes here once you send it.
+			),
+		),
+
+	);
+}
+endif;
 
 /* =========================================================================
  * IMPLEMENTATION - no edits needed below this line.
@@ -198,38 +270,162 @@ function tcu_person_schema_build_node( array $graph ) {
 }
 
 /**
- * Add the Person to Yoast's graph and wire the ProfilePage to it.
+ * Build a Book node from one entry in tcu_person_schema_books().
+ */
+function tcu_person_schema_build_book( array $book, array $graph ) {
+	$node = array(
+		'@type'         => 'Book',
+		'@id'           => $book['@id'],
+		'name'          => $book['name'],
+		'author'        => array( '@id' => TCU_PERSON_ID ),
+		'bookFormat'    => 'https://schema.org/EBook',
+		'inLanguage'    => 'en',
+	);
+
+	foreach ( array( 'description', 'url', 'image', 'datePublished', 'numberOfPages', 'genre', 'sameAs' ) as $key ) {
+		if ( ! empty( $book[ $key ] ) ) {
+			$node[ $key ] = $book[ $key ];
+		}
+	}
+
+	if ( ! empty( $book['about'] ) ) {
+		$node['about'] = array(
+			'@type' => 'Thing',
+			'name'  => $book['about'],
+		);
+	}
+
+	// Self-published under the Carrot Underground name - the Shopify listings give
+	// the vendor as "The Carrot Underground", so the brand is the publisher of record.
+	if ( tcu_person_schema_has_node( $graph, TCU_ORGANIZATION_ID ) ) {
+		$node['publisher'] = array( '@id' => TCU_ORGANIZATION_ID );
+	}
+
+	if ( ! empty( $book['price'] ) && ! empty( $book['url'] ) ) {
+		$node['offers'] = array(
+			'@type'         => 'Offer',
+			'price'         => $book['price'],
+			'priceCurrency' => 'USD',
+			'availability'  => 'https://schema.org/InStock',
+			'url'           => $book['url'],
+		);
+
+		if ( tcu_person_schema_has_node( $graph, TCU_ORGANIZATION_ID ) ) {
+			$node['offers']['seller'] = array( '@id' => TCU_ORGANIZATION_ID );
+		}
+	}
+
+	return $node;
+}
+
+/**
+ * Which Books belong on the page being rendered right now?
+ */
+function tcu_person_schema_books_for_this_page() {
+	$books = array();
+
+	foreach ( tcu_person_schema_books() as $book ) {
+		$page = isset( $book['page'] ) ? $book['page'] : TCU_PERSON_PAGE;
+
+		if ( is_page( $page ) ) {
+			$books[] = $book;
+		}
+	}
+
+	return $books;
+}
+
+/**
+ * A reference-only Person, for pages that carry a Book but not the full profile.
+ *
+ * When a cookbook eventually gets its own page, that page's Book node still points
+ * at TCU_PERSON_ID. Without this, that would be a reference to a node which is not
+ * in the page's graph. Emitting a minimal stub is not a second Connie: JSON-LD
+ * merges nodes by @id, so the stub and the full profile on the About page are read
+ * as one entity, described in more detail in one place than the other.
+ */
+function tcu_person_schema_build_person_stub() {
+	$definition = tcu_person_schema_definition();
+
+	return array(
+		'@type' => 'Person',
+		'@id'   => TCU_PERSON_ID,
+		'name'  => $definition['name'],
+		'url'   => strtok( TCU_PERSON_ID, '#' ),
+	);
+}
+
+/**
+ * Add the Person and any Books to Yoast's graph, and wire the page to them.
  *
  * Priority 11 so this runs after Yoast's own pieces are in place.
  */
 function tcu_person_schema_filter_graph( $graph, $context = null ) {
-	if ( ! is_array( $graph ) || ! tcu_person_schema_is_target_page() ) {
+	if ( ! is_array( $graph ) ) {
 		return $graph;
 	}
+
+	$is_profile = tcu_person_schema_is_target_page();
+	$books      = tcu_person_schema_books_for_this_page();
+
+	if ( ! $is_profile && empty( $books ) ) {
+		return $graph;
+	}
+
+	$page_id = tcu_person_schema_find_page_id( $graph );
+
+	/* ---- the Person ---- */
 
 	// Never add the Person twice - another plugin, or a second copy of this file,
 	// may have already put it there.
-	if ( tcu_person_schema_has_node( $graph, TCU_PERSON_ID ) ) {
-		return $graph;
+	$person_present = tcu_person_schema_has_node( $graph, TCU_PERSON_ID );
+
+	if ( $is_profile && ! $person_present ) {
+		$person = tcu_person_schema_build_node( $graph );
+
+		// The ProfilePage declares Connie as the thing the page is actually about.
+		if ( null !== $page_id ) {
+			$graph[ $page_id ]['mainEntity'] = array( '@id' => TCU_PERSON_ID );
+		}
+
+		// The opposite-direction edge on the Organization.
+		if ( TCU_LINK_ORGANIZATION_FOUNDER ) {
+			$org_id = tcu_person_schema_find_node_index( $graph, TCU_ORGANIZATION_ID );
+			if ( null !== $org_id && ! isset( $graph[ $org_id ]['founder'] ) ) {
+				$graph[ $org_id ]['founder'] = array( '@id' => TCU_PERSON_ID );
+			}
+		}
+
+		$graph[]        = $person;
+		$person_present = true;
 	}
 
-	$person   = tcu_person_schema_build_node( $graph );
-	$page_id  = tcu_person_schema_find_page_id( $graph );
+	/* ---- the Books ---- */
 
-	// The ProfilePage declares Connie as the thing the page is actually about.
-	if ( null !== $page_id ) {
-		$graph[ $page_id ]['mainEntity'] = array( '@id' => TCU_PERSON_ID );
+	$added = array();
+
+	foreach ( $books as $book ) {
+		if ( tcu_person_schema_has_node( $graph, $book['@id'] ) ) {
+			continue;
+		}
+
+		$graph[] = tcu_person_schema_build_book( $book, $graph );
+		$added[] = array( '@id' => $book['@id'] );
 	}
 
-	// The opposite-direction edge on the Organization.
-	if ( TCU_LINK_ORGANIZATION_FOUNDER ) {
-		$org_id = tcu_person_schema_find_node_index( $graph, TCU_ORGANIZATION_ID );
-		if ( null !== $org_id && ! isset( $graph[ $org_id ]['founder'] ) ) {
-			$graph[ $org_id ]['founder'] = array( '@id' => TCU_PERSON_ID );
+	if ( ! empty( $added ) ) {
+		// The Book nodes reference the author by @id, so she has to be in this graph.
+		if ( ! $person_present ) {
+			$graph[] = tcu_person_schema_build_person_stub();
+		}
+
+		// The page is what mentions these books - that is why their markup is allowed
+		// to be here at all, and it is what connects them to the rest of the graph.
+		if ( null !== $page_id ) {
+			$existing = isset( $graph[ $page_id ]['mentions'] ) ? (array) $graph[ $page_id ]['mentions'] : array();
+			$graph[ $page_id ]['mentions'] = array_merge( $existing, $added );
 		}
 	}
-
-	$graph[] = $person;
 
 	return array_values( $graph );
 }

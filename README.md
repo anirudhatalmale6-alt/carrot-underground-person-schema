@@ -37,6 +37,12 @@ Everything editable is in one block at the top of the file:
 | `TCU_ORGANIZATION_ID` | `https://thecarrotunderground.com/#organization` | Yoast's existing Organization, confirmed from live output. |
 | `TCU_LINK_ORGANIZATION_FOUNDER` | `true` | Adds `founder` to the Organization node. Purely additive. |
 
+Job titles match the line printed on the About page itself ("Longtime Vegan Recipe
+Developer • Cookbook Author • Photographer • Founder of The Carrot Underground"). If that
+line is reworded, reword `jobTitle` to match — structured data should describe what a reader
+can see. "Founder" is not repeated in `jobTitle` because it is already expressed properly as
+the `founder` edge on the Organization.
+
 The Person's name, job titles, description, `knowsAbout` and `sameAs` list live in
 `tcu_person_schema_definition()` directly below that.
 
@@ -48,7 +54,7 @@ Deriving it from `get_permalink()` at request time would quietly mint a brand ne
 the day the slug changes, throwing away everything the old one had accumulated — which is
 the opposite of the goal here.
 
-Every `Book`, `Article` or `Recipe` entity added later must reference this exact string:
+Every `Book`, `Article` or `Recipe` entity references this exact string:
 
 ```php
 'author' => array( '@id' => TCU_PERSON_ID ),
@@ -56,6 +62,70 @@ Every `Book`, `Article` or `Recipe` entity added later must reference this exact
 
 Restating name / image / sameAs inline on each cookbook page would create a second and
 third Connie as far as Google is concerned, splitting the entity signal between them.
+
+---
+
+## The cookbooks
+
+Both published e-cookbooks are emitted as `Book` nodes authored by that same `@id`.
+They are defined in `tcu_person_schema_books()`.
+
+They currently sit on the About page. That is deliberate and it is honest: the page's own
+copy says *"I recently published my first two vegan e-cookbooks"* and links to the shop, so
+the markup describes something a reader can actually see. Structured data for content that
+is not on the page is a guidelines violation, not a shortcut.
+
+The page node gets `mentions` pointing at both books. That is what earns them their place in
+the graph — the page mentions them; Connie remains the page's `mainEntity`.
+
+### Moving a book to its own page later
+
+Change that book's `page` value to the new page's ID. Nothing else. The `@id` is rooted at
+the domain (`https://thecarrotunderground.com/#/schema/book/...`) rather than at the About
+page, so moving where the node is *emitted* does not change what the Book *is*.
+
+When a Book lands on a page that has no full profile, a minimal `Person` stub (name and url
+only) is emitted alongside it so the `author` reference resolves. That is not a second
+Connie — JSON-LD merges nodes by `@id`, so the stub and the full About-page profile are read
+as one entity described in more detail in one place. There is a test covering exactly this.
+
+### What Book markup will and will not do
+
+Being straight about this: this will not produce a book rich result on its own. Google's
+Books structured data feature is a gated programme with its own onboarding, and it wants
+`workExample` editions with ISBNs, which self-published e-books without ISBNs cannot supply.
+
+The value here is entity resolution — it tells Google that the author entity it is being
+asked to recognise has actually published two titles, corroborated by Goodreads. For a
+Knowledge Panel bid, that is the point.
+
+### Book source data
+
+| | Volume One | Volume Two |
+| --- | --- | --- |
+| Published | 2024-10-01 | 2024-11-01 |
+| Pages | 63 | 70 |
+| Price | $9.99 | $9.99 |
+| Goodreads | [256792999](https://www.goodreads.com/book/show/256792999-the-carrot-underground-cookbook---volume-one) | [256793045](https://www.goodreads.com/book/show/256793045-the-carrot-underground-cookbook---volume-two) |
+
+Publication dates and page counts are from Goodreads. Note these are *not* the Shopify
+`published_at` dates (2024-10-23 and 2024-11-25) — those are when the products were listed
+in the store, which is a different fact from when the books were published.
+
+Two things deliberately left out:
+
+- **Amazon.** Goodreads lists ASINs `B0HDZ35VLC` and `B0HDZ959VG`, but both
+  `amazon.com/dp/…` URLs return **404**. They are Goodreads-internal identifiers, not live
+  listings. Adding them to `sameAs` would have published two dead links.
+- **The bundle product.** `…/products/the-carrot-underground-cookbook-volumes-one-two-bundle`
+  is an offer covering both titles rather than a third distinct work, so it is not its own
+  `Book`. It could be added as a second `Offer` if wanted.
+
+**Google Play Books is missing.** Connie's email says the e-books were accepted to Google
+Play. Those URLs are not in the code because I could not verify them — the Google Books API
+was returning HTTP 429 quota errors on every query, including a control query for a
+well-known title, so a nil result there proves nothing either way. There are commented
+placeholders in both `sameAs` arrays; send the two URLs and they go straight in.
 
 ---
 
@@ -139,7 +209,9 @@ hand Google the same entity on every URL with no single place that owns it.
 php tests/test-person-schema.php
 ```
 
-41 assertions, no WordPress or Yoast install required. The WordPress functions the snippet
+75 assertions, no WordPress or Yoast install required. (`tests/test-book-on-own-page.php`
+runs as a second process because it has to redefine the book list before the plugin loads;
+the main suite invokes it and folds in its results.) The WordPress functions the snippet
 calls are stubbed and the filter is run against `tests/fixture-live-graph.json` — the real
 `@graph` captured from the live About page on 2026-08-17 — so the assertions run against the
 exact structure Yoast is producing on the site today, not an idealised version of it.
@@ -157,6 +229,11 @@ Covered:
 - running the filter twice cannot produce a second Connie
 - degraded input (no ImageObject, no Organization, empty graph) still produces valid output
   rather than broken references
+- both Books reference the author by `@id` rather than restating her inline — there is a
+  specific assertion for this, because inlining the author is the exact mistake that would
+  silently create a second Connie
+- a Book moved to its own page keeps its identity, gets a Person stub so nothing dangles,
+  does not claim to be that page's `mainEntity`, and does not drag the other book with it
 
 The generated graph was also run through `validator.schema.org`: **0 errors, 0 warnings**,
 with the `Person` correctly resolving from the `ProfilePage`'s `mainEntity`.

@@ -131,7 +131,7 @@ ok( null === node_by_type( $before, 'Person' ), 'live graph has no Person today 
 
 $person = node_by_id( $after, TCU_PERSON_ID );
 ok( null !== $person, 'a Person node is added' );
-is_same( count( $after ), count( $before ) + 1, 'exactly one node is added, nothing is dropped' );
+is_same( count( $after ), count( $before ) + 3, 'three nodes are added - the Person and the two Books - and nothing is dropped' );
 is_same( $person['@type'], 'Person', 'it is typed Person' );
 is_same( $person['name'], 'Connie Edwards McGaughy', 'name is set' );
 ok( ! empty( $person['jobTitle'] ), 'jobTitle is set' );
@@ -188,8 +188,8 @@ is_same( $org_after, $org_before, 'founder is the ONLY change to the Organizatio
 
 $profile_before = node_by_type( $before, 'ProfilePage' );
 $profile_after  = node_by_type( $after, 'ProfilePage' );
-unset( $profile_after['mainEntity'] );
-is_same( $profile_after, $profile_before, 'mainEntity is the ONLY change to the ProfilePage node' );
+unset( $profile_after['mainEntity'], $profile_after['mentions'] );
+is_same( $profile_after, $profile_before, 'mainEntity and mentions are the ONLY changes to the ProfilePage node' );
 
 $types_before = array();
 $types_after  = array();
@@ -333,10 +333,61 @@ $no_org_person = node_by_id( tcu_person_schema_filter_graph( $no_org ), TCU_PERS
 ok( ! isset( $no_org_person['worksFor'] ), 'if the Organization is ever removed, worksFor is omitted rather than left dangling' );
 
 $empty_after = tcu_person_schema_filter_graph( array() );
-is_same( count( $empty_after ), 1, 'an empty graph still yields a valid Person' );
+is_same( count( $empty_after ), 3, 'an empty graph still yields the Person and both Books' );
 ok( ! isset( $empty_after[0]['mainEntityOfPage'] ), 'and no reference to a page that is not there' );
+ok( ! isset( $empty_after[1]['publisher'] ), 'with no Organization present, the Books omit publisher rather than dangling' );
+is_same( dangling_refs( $empty_after ), array(), 'and the Book author references still resolve' );
 
-heading( '9. The output is serialisable JSON-LD' );
+heading( '9. The cookbooks' );
+
+$GLOBALS['stub_current_page'] = array( 1003, 'about-connie-edwards-mcgaughy', 'About Connie Edwards McGaughy' );
+
+$with_books = tcu_person_schema_filter_graph( live_graph() );
+
+$books = array();
+foreach ( $with_books as $piece ) {
+	if ( in_array( 'Book', (array) $piece['@type'], true ) ) {
+		$books[] = $piece;
+	}
+}
+
+is_same( count( $books ), 2, 'both cookbooks are in the graph' );
+
+foreach ( $books as $book ) {
+	$label = 'Volume ' . ( false !== strpos( $book['@id'], 'volume-one' ) ? 'One' : 'Two' );
+
+	is_same( $book['author'], array( '@id' => TCU_PERSON_ID ), "$label: author references the one Connie by @id, not restated inline" );
+	is_same( $book['publisher'], array( '@id' => TCU_ORGANIZATION_ID ), "$label: publisher references the existing Organization" );
+	is_same( $book['bookFormat'], 'https://schema.org/EBook', "$label: bookFormat is an EBook" );
+	ok( ! empty( $book['datePublished'] ), "$label: datePublished is set" );
+	ok( is_int( $book['numberOfPages'] ), "$label: numberOfPages is a number, not a string" );
+	is_same( $book['offers']['priceCurrency'], 'USD', "$label: offer currency is set" );
+	is_same( $book['offers']['seller'], array( '@id' => TCU_ORGANIZATION_ID ), "$label: the seller is the Organization" );
+
+	// A Book whose author is spelled out inline instead of referenced would create a
+	// second Connie. This is the assertion that catches that regression.
+	ok( ! isset( $book['author']['name'] ), "$label: the author is not duplicated as a literal Person" );
+}
+
+$people = 0;
+foreach ( $with_books as $piece ) {
+	if ( in_array( 'Person', (array) $piece['@type'], true ) ) {
+		$people++;
+	}
+}
+is_same( $people, 1, 'still exactly one Person in the graph despite three nodes pointing at her' );
+
+$profile_with_books = node_by_type( $with_books, 'ProfilePage' );
+is_same( count( $profile_with_books['mentions'] ), 2, 'the page mentions both books' );
+is_same(
+	$profile_with_books['mainEntity'],
+	array( '@id' => TCU_PERSON_ID ),
+	'mainEntity is still Connie - the books are mentioned, she is what the page is about'
+);
+
+is_same( dangling_refs( $with_books ), array(), 'no dangling references once the books are added' );
+
+heading( '10. The output is serialisable JSON-LD' );
 
 $json = json_encode(
 	array( '@context' => 'https://schema.org', '@graph' => $once ),
@@ -347,6 +398,25 @@ ok( false !== $json, 'the graph encodes to JSON without error' );
 ok( null !== json_decode( $json, true ), 'and decodes back cleanly' );
 
 file_put_contents( __DIR__ . '/../output-about-page-schema.json', $json . "\n" );
+
+/* ---------------------------------------------------------------- *
+ * The "book on its own page" scenario needs a different book list defined before
+ * the plugin loads, which cannot be done twice in one process. Run it separately
+ * and fold its results in.
+ * ---------------------------------------------------------------- */
+
+$sub_output = array();
+$sub_status = 0;
+exec( escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( __DIR__ . '/test-book-on-own-page.php' ) . ' 2>&1', $sub_output, $sub_status );
+
+foreach ( $sub_output as $line ) {
+	if ( preg_match( '/^(\d+) passed, (\d+) failed$/', trim( $line ), $m ) ) {
+		$GLOBALS['pass'] += (int) $m[1];
+		$GLOBALS['fail'] += (int) $m[2];
+		continue;
+	}
+	echo $line . "\n";
+}
 
 /* ---------------------------------------------------------------- */
 
