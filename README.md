@@ -131,13 +131,18 @@ placeholders in both `sameAs` arrays; send the two URLs and they go straight in.
 
 ## What this produces
 
-The About page graph gains one node and two references:
+The About page graph gains three nodes — the Person and the two Books — plus the references
+that tie them to what Yoast already outputs:
 
 ```jsonc
 {
   "@type": ["WebPage", "ProfilePage"],
   "@id": "https://thecarrotunderground.com/about-connie-edwards-mcgaughy/",
-  "mainEntity": { "@id": "…#/schema/person/connie-edwards-mcgaughy" }   // added
+  "mainEntity": { "@id": "…#/schema/person/connie-edwards-mcgaughy" },  // added
+  "mentions": [                                                         // added
+    { "@id": "https://thecarrotunderground.com/#/schema/book/carrot-underground-cookbook-volume-one" },
+    { "@id": "https://thecarrotunderground.com/#/schema/book/carrot-underground-cookbook-volume-two" }
+  ]
 },
 {
   "@type": "Organization",
@@ -148,7 +153,7 @@ The About page graph gains one node and two references:
   "@type": "Person",                                                    // added
   "@id": "https://thecarrotunderground.com/about-connie-edwards-mcgaughy/#/schema/person/connie-edwards-mcgaughy",
   "name": "Connie Edwards McGaughy",
-  "jobTitle": ["Vegan Recipe Developer", "Cookbook Author", "Food Blogger"],
+  "jobTitle": ["Vegan Recipe Developer", "Cookbook Author", "Food Blogger", "Photographer"],
   "url": "https://thecarrotunderground.com/about-connie-edwards-mcgaughy/",
   "mainEntityOfPage": { "@id": "https://thecarrotunderground.com/about-connie-edwards-mcgaughy/" },
   "image": { "@id": "…#primaryimage" },
@@ -156,6 +161,18 @@ The About page graph gains one node and two references:
   "affiliation": { "@id": "https://thecarrotunderground.com/#organization" },
   "knowsAbout": [...],
   "sameAs": [...]
+},
+{
+  "@type": "Book",                                                      // added, x2
+  "@id": "https://thecarrotunderground.com/#/schema/book/carrot-underground-cookbook-volume-one",
+  "name": "The Carrot Underground Cookbook - Volume One: How to Host Plant-Based Parties Everyone Will Love",
+  "author": { "@id": "…#/schema/person/connie-edwards-mcgaughy" },
+  "publisher": { "@id": "https://thecarrotunderground.com/#organization" },
+  "bookFormat": "https://schema.org/EBook",
+  "datePublished": "2024-10-01",
+  "numberOfPages": 63,
+  "offers": { "@type": "Offer", "price": "9.99", "priceCurrency": "USD", … },
+  "sameAs": ["https://www.goodreads.com/book/show/256792999-…"]
 }
 ```
 
