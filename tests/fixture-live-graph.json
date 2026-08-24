@@ -1,118 +1,118 @@
 [
-  {
-    "@type": [
-      "WebPage",
-      "ProfilePage"
-    ],
-    "@id": "https://thecarrotunderground.com/about-connie-edwards-mcgaughy/",
-    "url": "https://thecarrotunderground.com/about-connie-edwards-mcgaughy/",
-    "name": "About Connie Edwards McGaughy - The Carrot Underground🥕",
-    "isPartOf": {
-      "@id": "https://thecarrotunderground.com/#website"
-    },
-    "primaryImageOfPage": {
-      "@id": "https://thecarrotunderground.com/about-connie-edwards-mcgaughy/#primaryimage"
-    },
-    "image": {
-      "@id": "https://thecarrotunderground.com/about-connie-edwards-mcgaughy/#primaryimage"
-    },
-    "thumbnailUrl": "https://thecarrotunderground.com/wp-content/uploads/2025/02/Copy-of-con-in-kitchen-2c.jpg",
-    "datePublished": "2020-01-09T08:15:52+00:00",
-    "dateModified": "2026-08-17T15:43:57+00:00",
-    "description": "Connie Edwards McGaughy is a longtime vegan recipe developer, author, and creator of The Carrot Underground, based in San Diego, California.",
-    "breadcrumb": {
-      "@id": "https://thecarrotunderground.com/about-connie-edwards-mcgaughy/#breadcrumb"
-    },
-    "inLanguage": "en-US",
-    "potentialAction": [
-      {
-        "@type": "ReadAction",
-        "target": [
-          "https://thecarrotunderground.com/about-connie-edwards-mcgaughy/"
-        ]
-      }
-    ]
-  },
-  {
-    "@type": "ImageObject",
-    "inLanguage": "en-US",
-    "@id": "https://thecarrotunderground.com/about-connie-edwards-mcgaughy/#primaryimage",
-    "url": "https://thecarrotunderground.com/wp-content/uploads/2025/02/Copy-of-con-in-kitchen-2c.jpg",
-    "contentUrl": "https://thecarrotunderground.com/wp-content/uploads/2025/02/Copy-of-con-in-kitchen-2c.jpg",
-    "width": 1200,
-    "height": 1200,
-    "caption": "The vegan author Connie Edwards McGaughy inside her coastal San Diego kitchen."
-  },
-  {
-    "@type": "BreadcrumbList",
-    "@id": "https://thecarrotunderground.com/about-connie-edwards-mcgaughy/#breadcrumb",
-    "itemListElement": [
-      {
-        "@type": "ListItem",
-        "position": 1,
-        "name": "Home",
-        "item": "https://thecarrotunderground.com/"
-      },
-      {
-        "@type": "ListItem",
-        "position": 2,
-        "name": "About Connie Edwards McGaughy"
-      }
-    ]
-  },
-  {
-    "@type": "WebSite",
-    "@id": "https://thecarrotunderground.com/#website",
-    "url": "https://thecarrotunderground.com/",
-    "name": "The Carrot Underground🥕",
-    "description": "Delicious vegan recipes for everyone.",
-    "publisher": {
-      "@id": "https://thecarrotunderground.com/#organization"
-    },
-    "potentialAction": [
-      {
-        "@type": "SearchAction",
-        "target": {
-          "@type": "EntryPoint",
-          "urlTemplate": "https://thecarrotunderground.com/?s={search_term_string}"
+    {
+        "@type": [
+            "WebPage",
+            "ProfilePage"
+        ],
+        "@id": "https://thecarrotunderground.com/about-connie-edwards-mcgaughy/",
+        "url": "https://thecarrotunderground.com/about-connie-edwards-mcgaughy/",
+        "name": "Connie Edwards McGaughy | Vegan Recipe Developer & Author",
+        "isPartOf": {
+            "@id": "https://thecarrotunderground.com/#website"
         },
-        "query-input": {
-          "@type": "PropertyValueSpecification",
-          "valueRequired": true,
-          "valueName": "search_term_string"
+        "primaryImageOfPage": {
+            "@id": "https://thecarrotunderground.com/about-connie-edwards-mcgaughy/#primaryimage"
+        },
+        "image": {
+            "@id": "https://thecarrotunderground.com/about-connie-edwards-mcgaughy/#primaryimage"
+        },
+        "thumbnailUrl": "https://thecarrotunderground.com/wp-content/uploads/2025/02/Copy-of-con-in-kitchen-2c.jpg",
+        "datePublished": "2020-01-09T08:15:52+00:00",
+        "dateModified": "2026-08-23T00:07:44+00:00",
+        "description": "Connie Edwards McGaughy is a longtime vegan recipe developer, cookbook author, and founder of The Carrot Underground, based in San Diego, California.",
+        "breadcrumb": {
+            "@id": "https://thecarrotunderground.com/about-connie-edwards-mcgaughy/#breadcrumb"
+        },
+        "inLanguage": "en-US",
+        "potentialAction": [
+            {
+                "@type": "ReadAction",
+                "target": [
+                    "https://thecarrotunderground.com/about-connie-edwards-mcgaughy/"
+                ]
+            }
+        ]
+    },
+    {
+        "@type": "ImageObject",
+        "inLanguage": "en-US",
+        "@id": "https://thecarrotunderground.com/about-connie-edwards-mcgaughy/#primaryimage",
+        "url": "https://thecarrotunderground.com/wp-content/uploads/2025/02/Copy-of-con-in-kitchen-2c.jpg",
+        "contentUrl": "https://thecarrotunderground.com/wp-content/uploads/2025/02/Copy-of-con-in-kitchen-2c.jpg",
+        "width": 1200,
+        "height": 1200,
+        "caption": "The vegan author Connie Edwards McGaughy inside her coastal San Diego kitchen."
+    },
+    {
+        "@type": "BreadcrumbList",
+        "@id": "https://thecarrotunderground.com/about-connie-edwards-mcgaughy/#breadcrumb",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://thecarrotunderground.com/"
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "About Connie Edwards McGaughy"
+            }
+        ]
+    },
+    {
+        "@type": "WebSite",
+        "@id": "https://thecarrotunderground.com/#website",
+        "url": "https://thecarrotunderground.com/",
+        "name": "The Carrot Underground🥕",
+        "description": "Classic comfort food made kinder.",
+        "publisher": {
+            "@id": "https://thecarrotunderground.com/#organization"
+        },
+        "potentialAction": [
+            {
+                "@type": "SearchAction",
+                "target": {
+                    "@type": "EntryPoint",
+                    "urlTemplate": "https://thecarrotunderground.com/?s={search_term_string}"
+                },
+                "query-input": {
+                    "@type": "PropertyValueSpecification",
+                    "valueRequired": true,
+                    "valueName": "search_term_string"
+                }
+            }
+        ],
+        "inLanguage": "en-US"
+    },
+    {
+        "@type": "Organization",
+        "@id": "https://thecarrotunderground.com/#organization",
+        "name": "The Carrot Underground",
+        "url": "https://thecarrotunderground.com/",
+        "logo": {
+            "@type": "ImageObject",
+            "inLanguage": "en-US",
+            "@id": "https://thecarrotunderground.com/#/schema/logo/image/",
+            "url": "https://thecarrotunderground.com/wp-content/uploads/2020/01/the20Carrot20Underground203_edited.png",
+            "contentUrl": "https://thecarrotunderground.com/wp-content/uploads/2020/01/the20Carrot20Underground203_edited.png",
+            "width": 1534,
+            "height": 924,
+            "caption": "The Carrot Underground"
+        },
+        "image": {
+            "@id": "https://thecarrotunderground.com/#/schema/logo/image/"
+        },
+        "sameAs": [
+            "https://www.facebook.com/thecarrotunderground/",
+            "https://x.com/veganconnie",
+            "https://www.instagram.com/thecarrotunderground/",
+            "https://www.linkedin.com/in/connie-edwards-mcgaughy",
+            "https://www.pinterest.com/thecarrotunderground",
+            "https://www.youtube.com/channel/UC0l81mHV9MdJXko-yrVphug"
+        ],
+        "mainEntityOfPage": {
+            "@id": "https://thecarrotunderground.com/about-connie-edwards-mcgaughy/"
         }
-      }
-    ],
-    "inLanguage": "en-US"
-  },
-  {
-    "@type": "Organization",
-    "@id": "https://thecarrotunderground.com/#organization",
-    "name": "The Carrot Underground",
-    "url": "https://thecarrotunderground.com/",
-    "logo": {
-      "@type": "ImageObject",
-      "inLanguage": "en-US",
-      "@id": "https://thecarrotunderground.com/#/schema/logo/image/",
-      "url": "https://thecarrotunderground.com/wp-content/uploads/2020/01/the20Carrot20Underground203_edited.png",
-      "contentUrl": "https://thecarrotunderground.com/wp-content/uploads/2020/01/the20Carrot20Underground203_edited.png",
-      "width": 1534,
-      "height": 924,
-      "caption": "The Carrot Underground"
-    },
-    "image": {
-      "@id": "https://thecarrotunderground.com/#/schema/logo/image/"
-    },
-    "sameAs": [
-      "https://www.facebook.com/thecarrotunderground/",
-      "https://x.com/veganconnie",
-      "https://www.instagram.com/thecarrotunderground/",
-      "https://www.linkedin.com/in/connie-edwards-mcgaughy",
-      "https://www.pinterest.com/thecarrotunderground",
-      "https://www.youtube.com/channel/UC0l81mHV9MdJXko-yrVphug"
-    ],
-    "mainEntityOfPage": {
-      "@id": "https://thecarrotunderground.com/about-connie-edwards-mcgaughy/"
     }
-  }
 ]

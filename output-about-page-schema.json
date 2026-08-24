@@ -8,7 +8,7 @@
             ],
             "@id": "https://thecarrotunderground.com/about-connie-edwards-mcgaughy/",
             "url": "https://thecarrotunderground.com/about-connie-edwards-mcgaughy/",
-            "name": "About Connie Edwards McGaughy - The Carrot Underground\ud83e\udd55",
+            "name": "Connie Edwards McGaughy | Vegan Recipe Developer & Author",
             "isPartOf": {
                 "@id": "https://thecarrotunderground.com/#website"
             },
@@ -20,8 +20,8 @@
             },
             "thumbnailUrl": "https://thecarrotunderground.com/wp-content/uploads/2025/02/Copy-of-con-in-kitchen-2c.jpg",
             "datePublished": "2020-01-09T08:15:52+00:00",
-            "dateModified": "2026-08-17T15:43:57+00:00",
-            "description": "Connie Edwards McGaughy is a longtime vegan recipe developer, author, and creator of The Carrot Underground, based in San Diego, California.",
+            "dateModified": "2026-08-23T00:07:44+00:00",
+            "description": "Connie Edwards McGaughy is a longtime vegan recipe developer, cookbook author, and founder of The Carrot Underground, based in San Diego, California.",
             "breadcrumb": {
                 "@id": "https://thecarrotunderground.com/about-connie-edwards-mcgaughy/#breadcrumb"
             },
@@ -101,7 +101,7 @@
             "@id": "https://thecarrotunderground.com/#website",
             "url": "https://thecarrotunderground.com/",
             "name": "The Carrot Underground\ud83e\udd55",
-            "description": "Delicious vegan recipes for everyone.",
+            "description": "Classic comfort food made kinder.",
             "publisher": {
                 "@id": "https://thecarrotunderground.com/#organization"
             },
