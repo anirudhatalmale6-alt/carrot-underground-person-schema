@@ -1,0 +1,112 @@
+[
+    {
+        "@type": "WebPage",
+        "@id": "https://thecarrotunderground.com/the-carrot-underground-cookbook-vol-2/",
+        "url": "https://thecarrotunderground.com/the-carrot-underground-cookbook-vol-2/",
+        "name": "Carrot Underground Cookbook Vol. 2 | Connie Edwards McGaughy",
+        "isPartOf": {
+            "@id": "https://thecarrotunderground.com/#website"
+        },
+        "primaryImageOfPage": {
+            "@id": "https://thecarrotunderground.com/the-carrot-underground-cookbook-vol-2/#primaryimage"
+        },
+        "image": {
+            "@id": "https://thecarrotunderground.com/the-carrot-underground-cookbook-vol-2/#primaryimage"
+        },
+        "thumbnailUrl": "https://thecarrotunderground.com/wp-content/uploads/2026/08/TCU-cookbook-volume-two-cover.jpg",
+        "datePublished": "2026-08-22T04:16:41+00:00",
+        "dateModified": "2026-08-22T23:07:14+00:00",
+        "description": "The Carrot Underground Cookbook Volume Two features 35 vegan baking recipes, tips, and guides for desserts and treats made without eggs or dairy.",
+        "breadcrumb": {
+            "@id": "https://thecarrotunderground.com/the-carrot-underground-cookbook-vol-2/#breadcrumb"
+        },
+        "inLanguage": "en-US",
+        "potentialAction": [
+            {
+                "@type": "ReadAction",
+                "target": [
+                    "https://thecarrotunderground.com/the-carrot-underground-cookbook-vol-2/"
+                ]
+            }
+        ]
+    },
+    {
+        "@type": "ImageObject",
+        "inLanguage": "en-US",
+        "@id": "https://thecarrotunderground.com/the-carrot-underground-cookbook-vol-2/#primaryimage",
+        "url": "https://thecarrotunderground.com/wp-content/uploads/2026/08/TCU-cookbook-volume-two-cover.jpg",
+        "contentUrl": "https://thecarrotunderground.com/wp-content/uploads/2026/08/TCU-cookbook-volume-two-cover.jpg",
+        "width": 1200,
+        "height": 1553,
+        "caption": "The Carrot Underground Cookbook Volume Two by Connie Edwards McGaughy."
+    },
+    {
+        "@type": "BreadcrumbList",
+        "@id": "https://thecarrotunderground.com/the-carrot-underground-cookbook-vol-2/#breadcrumb",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://thecarrotunderground.com/"
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "The Carrot Underground Cookbook – Vol. 2"
+            }
+        ]
+    },
+    {
+        "@type": "WebSite",
+        "@id": "https://thecarrotunderground.com/#website",
+        "url": "https://thecarrotunderground.com/",
+        "name": "The Carrot Underground🥕",
+        "description": "Classic comfort food made kinder.",
+        "publisher": {
+            "@id": "https://thecarrotunderground.com/#organization"
+        },
+        "potentialAction": [
+            {
+                "@type": "SearchAction",
+                "target": {
+                    "@type": "EntryPoint",
+                    "urlTemplate": "https://thecarrotunderground.com/?s={search_term_string}"
+                },
+                "query-input": {
+                    "@type": "PropertyValueSpecification",
+                    "valueRequired": true,
+                    "valueName": "search_term_string"
+                }
+            }
+        ],
+        "inLanguage": "en-US"
+    },
+    {
+        "@type": "Organization",
+        "@id": "https://thecarrotunderground.com/#organization",
+        "name": "The Carrot Underground",
+        "url": "https://thecarrotunderground.com/",
+        "logo": {
+            "@type": "ImageObject",
+            "inLanguage": "en-US",
+            "@id": "https://thecarrotunderground.com/#/schema/logo/image/",
+            "url": "https://thecarrotunderground.com/wp-content/uploads/2020/01/the20Carrot20Underground203_edited.png",
+            "contentUrl": "https://thecarrotunderground.com/wp-content/uploads/2020/01/the20Carrot20Underground203_edited.png",
+            "width": 1534,
+            "height": 924,
+            "caption": "The Carrot Underground"
+        },
+        "image": {
+            "@id": "https://thecarrotunderground.com/#/schema/logo/image/"
+        },
+        "sameAs": [
+            "https://www.facebook.com/thecarrotunderground/",
+            "https://x.com/veganconnie",
+            "https://www.instagram.com/thecarrotunderground/",
+            "https://www.linkedin.com/in/connie-edwards-mcgaughy",
+            "https://www.pinterest.com/thecarrotunderground",
+            "https://www.youtube.com/channel/UC0l81mHV9MdJXko-yrVphug"
+        ]
+    }
+]

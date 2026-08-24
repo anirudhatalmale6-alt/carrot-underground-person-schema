@@ -6,7 +6,10 @@
  *               as its mainEntity. Yoast's Organization, WebSite, ProfilePage, BreadcrumbList
  *               and ImageObject pieces are left exactly as they are - nothing is replaced,
  *               nothing is duplicated.
- * Version:      1.0.0
+ *
+ *               Also gives each cookbook a Book entity on its own page, and keeps the
+ *               personal profiles on the Person and the brand profiles on the Organization.
+ * Version:      1.1.0
  * Author:       PonyTechSolutions
  * Requires PHP: 7.4
  *
@@ -72,6 +75,78 @@ define( 'TCU_ORGANIZATION_ID', 'https://thecarrotunderground.com/#organization' 
 define( 'TCU_LINK_ORGANIZATION_FOUNDER', true );
 
 /**
+ * Keep personal profiles on the Person and brand profiles on the Organization.
+ *
+ * Yoast's "Other profiles" list (Settings -> Site representation) is emitted as the
+ * Organization's sameAs on every page of the site, and it currently contains two
+ * profiles that identify Connie rather than the brand. When this is true, those
+ * entries are removed from the Organization node as the graph is built, so each
+ * profile corroborates exactly one entity.
+ *
+ * The list of what counts as personal is tcu_person_schema_personal_profiles()
+ * below - which is the same list the Person publishes, so the two can never drift.
+ *
+ * THE TIDIER FIX is to delete those two lines in Yoast -> Settings -> Site
+ * representation -> Other profiles, after which this does nothing at all and simply
+ * stops them coming back. Doing it here as well means the output is right either way,
+ * but be aware that while both are true the Yoast settings screen will list a profile
+ * that the page no longer prints.
+ */
+define( 'TCU_SPLIT_ORG_SAMEAS', true );
+
+/**
+ * Tie the cookbooks together as volumes of one series.
+ *
+ * Each cookbook page carries a "Looking for Volume Two?" block linking to the other
+ * volume, so this describes something a reader can actually see and follow.
+ *
+ * A BookSeries is the right shape for this rather than a direct book-to-book link:
+ * isRelatedTo, the obvious-looking choice, is defined on Product and Service and NOT
+ * on CreativeWork, so putting it on a Book is an unknown field. Volume One and Volume
+ * Two genuinely are parts of one series, and isPartOf / hasPart says exactly that.
+ *
+ * Set to false to leave the two Books unconnected.
+ */
+define( 'TCU_LINK_SIBLING_BOOKS', true );
+
+/** The series both cookbooks belong to. Domain-rooted, like the Book @ids. */
+define( 'TCU_BOOK_SERIES_ID', 'https://thecarrotunderground.com/#/schema/series/carrot-underground-cookbook' );
+define( 'TCU_BOOK_SERIES_NAME', 'The Carrot Underground Cookbook' );
+
+/**
+ * Profiles that identify Connie the person, as opposed to The Carrot Underground
+ * the brand.
+ *
+ * This list does two jobs: it is the Person's sameAs, and it is what gets stripped
+ * out of the Organization's sameAs. Keeping it in one place is deliberate - if the
+ * two lists were maintained separately they would drift, and a profile sitting on
+ * both entities is exactly the problem this is meant to solve.
+ *
+ * WikiData first: it is the one entry here that Google's Knowledge Graph reads
+ * directly rather than merely as corroboration, so it carries the most weight.
+ * Q138577229 - instance of human, official website pointing at thecarrotunderground.com.
+ *
+ * The Goodreads entry is the canonical author URL rather than the /veganconnie vanity
+ * URL, which is a 301 redirect to this address.
+ *
+ * The brand accounts - Facebook, Instagram, Pinterest and the YouTube channel, which
+ * is titled "The Carrot Underground" - are deliberately NOT here. They stay on the
+ * Organization, where Yoast already publishes them.
+ *
+ * x.com/veganconnie is the one judgement call. The handle names a person, so it is
+ * treated as hers; if that account actually posts as the brand, move this one line
+ * into Yoast's Other profiles instead and it will swap over.
+ */
+function tcu_person_schema_personal_profiles() {
+	return array(
+		'https://www.wikidata.org/wiki/Q138577229',
+		'https://www.linkedin.com/in/connie-edwards-mcgaughy',
+		'https://www.goodreads.com/author/show/71756303.Connie_Edwards_McGaughy',
+		'https://x.com/veganconnie',
+	);
+}
+
+/**
  * The Person entity itself.
  */
 function tcu_person_schema_definition() {
@@ -95,7 +170,7 @@ function tcu_person_schema_definition() {
 			'Photographer',
 		),
 
-		'description' => 'Connie Edwards McGaughy is a longtime vegan recipe developer, author, and creator of The Carrot Underground, based in San Diego, California.',
+		'description' => 'Connie Edwards McGaughy is a longtime vegan recipe developer, cookbook author, and founder of The Carrot Underground, based in San Diego, California.',
 
 		// Topical signals - what this person is an authority on.
 		'knowsAbout'  => array(
@@ -105,25 +180,9 @@ function tcu_person_schema_definition() {
 			'Vegan desserts',
 		),
 
-		// Profiles that identify Connie as a person / author.
-		//
-		// WikiData first: it is the one entry here that Google's Knowledge Graph reads
-		// directly rather than merely as corroboration, so it carries the most weight.
-		// Q138577229 was located on wikidata.org on 2026-08-17 - instance of human,
-		// official website already pointing at thecarrotunderground.com.
-		//
-		// The Goodreads entry is the canonical author URL rather than the
-		// /veganconnie vanity URL, which is a 301 redirect to this address.
-		'sameAs'      => array(
-			'https://www.wikidata.org/wiki/Q138577229',
-			'https://www.facebook.com/thecarrotunderground/',
-			'https://x.com/veganconnie',
-			'https://www.instagram.com/thecarrotunderground/',
-			'https://www.linkedin.com/in/connie-edwards-mcgaughy',
-			'https://www.pinterest.com/thecarrotunderground',
-			'https://www.youtube.com/channel/UC0l81mHV9MdJXko-yrVphug',
-			'https://www.goodreads.com/author/show/71756303.Connie_Edwards_McGaughy',
-		),
+		// Profiles that identify Connie as a person / author. See the note on
+		// tcu_person_schema_personal_profiles() for why the brand accounts are not here.
+		'sameAs'      => tcu_person_schema_personal_profiles(),
 
 		// Uncomment to publish a coarse location. Nothing more precise than
 		// city/region should ever go in schema for a private individual.
@@ -149,15 +208,21 @@ function tcu_person_schema_definition() {
  * at TCU_PERSON_ID rather than restating her details, Google reads them as three
  * facts about one author rather than as three unrelated pages.
  *
- * 'page' is where each Book's node is emitted. Both currently sit on the About
- * page, which is honest - that page's copy says "I recently published my first two
- * vegan e-cookbooks" and links to the shop, so the markup matches what a reader
- * can actually see. When the dedicated cookbook pages go live, change 'page' to
- * that page's ID and the Book moves with it. Nothing else needs touching: the
- * author link travels with the node.
+ * 'page' is the Book's home - the page where its full definition is emitted, where
+ * it becomes that page's mainEntity, and which its url points at. Both books now
+ * live on their own dedicated pages (28270 and 28306, confirmed against the site's
+ * REST API on 2026-08-24). The About page still says "I recently published my first
+ * two vegan e-cookbooks", so it keeps a short reference to each under mentions -
+ * a reference, not a second copy of the definition.
  *
- * The @ids are rooted at the domain rather than at the About page, precisely so
- * that move does not change the identity of the Book.
+ * The @ids are rooted at the domain rather than at any one page, precisely so that
+ * this move did not change the identity of either Book. They are the same strings
+ * that were published from the About page, so nothing Google has already read is
+ * invalidated.
+ *
+ * 'url' is the book's page on this site - the canonical home for the work.
+ * 'shopUrl' is where you actually buy it, and is used for the Offer only. Those are
+ * two different facts and conflating them is what the previous version did.
  *
  * Wrapped in function_exists so the list can be overridden from elsewhere without
  * editing this file.
@@ -167,35 +232,55 @@ function tcu_person_schema_books() {
 	return array(
 
 		array(
-			'page'           => TCU_PERSON_PAGE,
+			'page'           => 28270,
 			'@id'            => 'https://thecarrotunderground.com/#/schema/book/carrot-underground-cookbook-volume-one',
+
+			// The complete title, main title and subtitle together, exactly as the
+			// "Book Details" panel on the page states it. schema.org has no separate
+			// subtitle property on Book, so the two are one string.
 			'name'           => 'The Carrot Underground Cookbook - Volume One: How to Host Plant-Based Parties Everyone Will Love',
-			'description'    => 'Your essential companion for hosting unforgettable, 100% plant-based gatherings that everyone, vegan or not, will love. Connie Edwards McGaughy shares her favorite recipes, top tips and ideas for creating entirely plant-based parties.',
-			'url'            => 'https://qf01dx-q0.myshopify.com/products/the-carrot-underground-digital-cookbook-volume-one',
-			'image'          => 'https://cdn.shopify.com/s/files/1/0720/4886/9602/files/TCU-Cookbook-Vol-1-Cover.png?v=1729902018',
+
+			// Taken from the cookbook page's own opening paragraph, so the description
+			// in the markup and the description a reader sees are the same claim.
+			'description'    => 'The Carrot Underground Cookbook - Volume One is a 63-page digital e-book featuring 45 vegan recipes, party-planning tips, and creative ideas for hosting gatherings everyone can enjoy.',
+
+			'url'            => 'https://thecarrotunderground.com/the-carrot-underground-cookbook-vol-1/',
+			'shopUrl'        => 'https://qf01dx-q0.myshopify.com/products/the-carrot-underground-digital-cookbook-volume-one',
+
+			// Fallback only. On the book's own page the cover ImageObject that Yoast
+			// already emits is reused instead of adding a second one for the same file.
+			'image'          => 'https://thecarrotunderground.com/wp-content/uploads/2026/08/the-carrot-underground-cookbook-volume-one-cover.jpg',
+
 			'datePublished'  => '2024-10-01',
 			'numberOfPages'  => 63,
 			'genre'          => 'Vegan cookbook',
 			'about'          => 'Vegan entertaining',
 			'price'          => '9.99',
 			'sameAs'         => array(
+				// Q141124581 - the WikiData item for this volume. Its author statement
+				// already points at Q138577229, so the two sides agree.
+				'https://www.wikidata.org/wiki/Q141124581',
 				'https://www.goodreads.com/book/show/256792999-the-carrot-underground-cookbook---volume-one',
 				'https://play.google.com/store/books/details?id=RzH1EQAAQBAJ',
 			),
 		),
 
 		array(
-			'page'           => TCU_PERSON_PAGE,
+			'page'           => 28306,
 			'@id'            => 'https://thecarrotunderground.com/#/schema/book/carrot-underground-cookbook-volume-two',
 			'name'           => 'The Carrot Underground Cookbook - Volume Two: How to Bake the Best Vegan Desserts and Treats',
-			'description'    => 'Everything you need for creating mouth-watering vegan desserts that everyone, even non-vegans, will adore. Connie Edwards McGaughy guides seasoned and first-time bakers through the art of baking without eggs or dairy.',
-			'url'            => 'https://qf01dx-q0.myshopify.com/products/the-carrot-underground-cookbook-volume-two-how-to-bake-the-best-vegan-desserts-treats',
-			'image'          => 'https://cdn.shopify.com/s/files/1/0720/4886/9602/files/TCU-Cookbook-Vol-Two-Cover.jpg?v=1732579285',
+			'description'    => 'The Carrot Underground Cookbook - Volume Two is a 70-page digital vegan baking cookbook of 35 dessert recipes, baking tips, and practical guides for creating treats without eggs or dairy.',
+			'url'            => 'https://thecarrotunderground.com/the-carrot-underground-cookbook-vol-2/',
+			'shopUrl'        => 'https://qf01dx-q0.myshopify.com/products/the-carrot-underground-cookbook-volume-two-how-to-bake-the-best-vegan-desserts-treats',
+			'image'          => 'https://thecarrotunderground.com/wp-content/uploads/2026/08/TCU-cookbook-volume-two-cover.jpg',
 			'datePublished'  => '2024-11-01',
 			'numberOfPages'  => 70,
 			'genre'          => 'Vegan cookbook',
 			'about'          => 'Vegan baking',
 			'price'          => '9.99',
+
+			// No WikiData item for this volume yet - Volume One has one, this does not.
+			// Add it here once it exists.
 			'sameAs'         => array(
 				'https://www.goodreads.com/book/show/256793045-the-carrot-underground-cookbook---volume-two',
 				'https://play.google.com/store/books/details?id=OzX1EQAAQBAJ',
@@ -376,8 +461,13 @@ function tcu_person_schema_build_node( array $graph ) {
 
 /**
  * Build a Book node from one entry in tcu_person_schema_books().
+ *
+ * @param array $book     One entry from the list above.
+ * @param array $graph    The graph so far, used to reuse nodes rather than duplicate them.
+ * @param bool  $own_page True when this is the book's own dedicated page, in which case
+ *                        the page's cover image is reused and mainEntityOfPage is set.
  */
-function tcu_person_schema_build_book( array $book, array $graph ) {
+function tcu_person_schema_build_book( array $book, array $graph, $own_page = false ) {
 	$node = array(
 		'@type'         => 'Book',
 		'@id'           => $book['@id'],
@@ -400,19 +490,38 @@ function tcu_person_schema_build_book( array $book, array $graph ) {
 		);
 	}
 
+	$page_index = tcu_person_schema_find_page_id( $graph );
+
+	if ( $own_page && null !== $page_index && ! empty( $graph[ $page_index ]['@id'] ) ) {
+		// This page is about this book, and the book says so back.
+		$node['mainEntityOfPage'] = array( '@id' => $graph[ $page_index ]['@id'] );
+
+		// Reuse the cover ImageObject Yoast already emits for the page rather than
+		// adding a second node pointing at the same file.
+		$image_index = tcu_person_schema_find_primary_image_id( $graph );
+		if ( null !== $image_index ) {
+			$node['image'] = array( '@id' => $graph[ $image_index ]['@id'] );
+		}
+	}
+
 	// Self-published under the Carrot Underground name - the Shopify listings give
 	// the vendor as "The Carrot Underground", so the brand is the publisher of record.
 	if ( tcu_person_schema_has_node( $graph, TCU_ORGANIZATION_ID ) ) {
 		$node['publisher'] = array( '@id' => TCU_ORGANIZATION_ID );
 	}
 
-	if ( ! empty( $book['price'] ) && ! empty( $book['url'] ) ) {
+	// The Offer points at the shop, because that is where the transaction happens.
+	// The Book's own url points at the page on this site. Same book, two different
+	// facts - the previous version used the Shopify URL for both.
+	$buy = ! empty( $book['shopUrl'] ) ? $book['shopUrl'] : ( ! empty( $book['url'] ) ? $book['url'] : '' );
+
+	if ( ! empty( $book['price'] ) && '' !== $buy ) {
 		$node['offers'] = array(
 			'@type'         => 'Offer',
 			'price'         => $book['price'],
 			'priceCurrency' => 'USD',
 			'availability'  => 'https://schema.org/InStock',
-			'url'           => $book['url'],
+			'url'           => $buy,
 		);
 
 		if ( tcu_person_schema_has_node( $graph, TCU_ORGANIZATION_ID ) ) {
@@ -421,6 +530,24 @@ function tcu_person_schema_build_book( array $book, array $graph ) {
 	}
 
 	return $node;
+}
+
+/**
+ * A reference-only Book, for pages that link to a cookbook without being its home.
+ *
+ * Same principle as the Person stub below: JSON-LD merges nodes by @id, so this and
+ * the full definition on the book's own page are read as one Book described in more
+ * detail in one place than the other. It exists so that a page which mentions a book
+ * has something to point at instead of a reference that goes nowhere.
+ */
+function tcu_person_schema_build_book_stub( array $book ) {
+	return array(
+		'@type'  => 'Book',
+		'@id'    => $book['@id'],
+		'name'   => $book['name'],
+		'url'    => $book['url'],
+		'author' => array( '@id' => TCU_PERSON_ID ),
+	);
 }
 
 /**
@@ -462,7 +589,7 @@ function tcu_person_schema_build_press( array $item ) {
 }
 
 /**
- * Which Books belong on the page being rendered right now?
+ * Which Books call the page being rendered right now their home?
  */
 function tcu_person_schema_books_for_this_page() {
 	$books = array();
@@ -476,6 +603,79 @@ function tcu_person_schema_books_for_this_page() {
 	}
 
 	return $books;
+}
+
+/**
+ * The other books - the ones whose home is some other page.
+ *
+ * These get a stub and a mentions edge on the About page (whose copy says she has
+ * published two cookbooks) and on each cookbook page (which links to the other volume).
+ */
+function tcu_person_schema_books_elsewhere() {
+	$books = array();
+
+	foreach ( tcu_person_schema_books() as $book ) {
+		$page = isset( $book['page'] ) ? $book['page'] : TCU_PERSON_PAGE;
+
+		if ( ! is_page( $page ) ) {
+			$books[] = $book;
+		}
+	}
+
+	return $books;
+}
+
+/**
+ * Keep the personal profiles off the Organization node.
+ *
+ * Yoast emits its "Other profiles" list as the Organization's sameAs on every page.
+ * Two of those entries identify Connie rather than the brand, and a profile listed
+ * on both entities corroborates neither of them cleanly. This removes them.
+ *
+ * Purely subtractive, and only ever removes URLs that this file publishes on the
+ * Person - so nothing can go missing from the graph as a whole.
+ */
+function tcu_person_schema_split_org_sameas( array $graph ) {
+	if ( ! TCU_SPLIT_ORG_SAMEAS ) {
+		return $graph;
+	}
+
+	$index = tcu_person_schema_find_node_index( $graph, TCU_ORGANIZATION_ID );
+
+	if ( null === $index || empty( $graph[ $index ]['sameAs'] ) ) {
+		return $graph;
+	}
+
+	$personal = array_map( 'tcu_person_schema_normalise_url', tcu_person_schema_personal_profiles() );
+	$current  = array_values( (array) $graph[ $index ]['sameAs'] );
+
+	$kept = array_values(
+		array_filter(
+			$current,
+			function ( $url ) use ( $personal ) {
+				return ! in_array( tcu_person_schema_normalise_url( $url ), $personal, true );
+			}
+		)
+	);
+
+	if ( $kept === $current ) {
+		return $graph;
+	}
+
+	if ( empty( $kept ) ) {
+		unset( $graph[ $index ]['sameAs'] );
+	} else {
+		$graph[ $index ]['sameAs'] = $kept;
+	}
+
+	return $graph;
+}
+
+/**
+ * Compare URLs without tripping over a trailing slash or a capital letter in the host.
+ */
+function tcu_person_schema_normalise_url( $url ) {
+	return rtrim( strtolower( trim( (string) $url ) ), '/' );
 }
 
 /**
@@ -508,11 +708,14 @@ function tcu_person_schema_filter_graph( $graph, $context = null ) {
 		return $graph;
 	}
 
+	// The Organization node is emitted on every page, so this runs on every page.
+	$graph = tcu_person_schema_split_org_sameas( $graph );
+
 	$is_profile = tcu_person_schema_is_target_page();
 	$books      = tcu_person_schema_books_for_this_page();
 
 	if ( ! $is_profile && empty( $books ) ) {
-		return $graph;
+		return array_values( $graph );
 	}
 
 	$page_id = tcu_person_schema_find_page_id( $graph );
@@ -545,6 +748,7 @@ function tcu_person_schema_filter_graph( $graph, $context = null ) {
 
 	/* ---- the Books ---- */
 
+	// Full definitions for the books whose home this page is.
 	$added = array();
 
 	foreach ( $books as $book ) {
@@ -552,22 +756,69 @@ function tcu_person_schema_filter_graph( $graph, $context = null ) {
 			continue;
 		}
 
-		$graph[] = tcu_person_schema_build_book( $book, $graph );
+		$graph[] = tcu_person_schema_build_book( $book, $graph, ! $is_profile );
 		$added[] = array( '@id' => $book['@id'] );
 	}
 
-	if ( ! empty( $added ) ) {
-		// The Book nodes reference the author by @id, so she has to be in this graph.
+	// Stubs for the books this page merely refers to: the other volume on a cookbook
+	// page, both volumes on the About page.
+	$referenced = array();
+
+	foreach ( tcu_person_schema_books_elsewhere() as $book ) {
+		if ( tcu_person_schema_has_node( $graph, $book['@id'] ) ) {
+			continue;
+		}
+
+		$graph[]      = tcu_person_schema_build_book_stub( $book );
+		$referenced[] = array( '@id' => $book['@id'] );
+	}
+
+	if ( ! empty( $added ) || ! empty( $referenced ) ) {
+		// Every Book node references the author by @id, so she has to be in this graph.
 		if ( ! $person_present ) {
 			$graph[]        = tcu_person_schema_build_person_stub();
 			$person_present = true;
 		}
 
-		// The page is what mentions these books - that is why their markup is allowed
-		// to be here at all, and it is what connects them to the rest of the graph.
+		$mentions = array_merge( $added, $referenced );
+
 		if ( null !== $page_id ) {
-			$existing = isset( $graph[ $page_id ]['mentions'] ) ? (array) $graph[ $page_id ]['mentions'] : array();
-			$graph[ $page_id ]['mentions'] = array_merge( $existing, $added );
+			// On a cookbook's own page, the book is what the page is about. On the
+			// About page mainEntity is already Connie, and the books are mentioned.
+			if ( ! $is_profile && ! empty( $added ) && ! isset( $graph[ $page_id ]['mainEntity'] ) ) {
+				$graph[ $page_id ]['mainEntity'] = array_shift( $mentions );
+			}
+
+			if ( ! empty( $mentions ) ) {
+				$existing = isset( $graph[ $page_id ]['mentions'] ) ? (array) $graph[ $page_id ]['mentions'] : array();
+				$graph[ $page_id ]['mentions'] = array_merge( $existing, $mentions );
+			}
+		}
+
+		// "Looking for Volume Two?" - the cross-link the page already shows a reader,
+		// expressed as the series the two volumes both belong to.
+		$all_books = array_merge( $added, $referenced );
+
+		if ( TCU_LINK_SIBLING_BOOKS && ! empty( $added ) && count( $all_books ) > 1
+			&& ! tcu_person_schema_has_node( $graph, TCU_BOOK_SERIES_ID ) ) {
+
+			$graph[] = array(
+				'@type'   => 'BookSeries',
+				'@id'     => TCU_BOOK_SERIES_ID,
+				'name'    => TCU_BOOK_SERIES_NAME,
+				'author'  => array( '@id' => TCU_PERSON_ID ),
+				'hasPart' => array_values( $all_books ),
+			);
+
+			// Only the full definitions declare membership; the stubs stay minimal and
+			// pick it up from the series' own hasPart.
+			foreach ( $added as $ref ) {
+				$index = tcu_person_schema_find_node_index( $graph, $ref['@id'] );
+
+				if ( null !== $index ) {
+					$graph[ $index ]['isPartOf'] = array( '@id' => TCU_BOOK_SERIES_ID );
+				}
+			}
 		}
 	}
 

@@ -7,6 +7,10 @@ Yoast's `Organization`, `WebSite`, `ProfilePage`, `BreadcrumbList` and `ImageObj
 are left as they are. Nothing is replaced, no second schema plugin is involved, and no
 duplicate `Person` / `Organization` / `ProfilePage` entity is created.
 
+It also gives each cookbook a `Book` entity on its own dedicated page, seven press articles
+on the About page, and keeps the personal profiles on the `Person` while the brand profiles
+stay on the `Organization`.
+
 ---
 
 ## Install
@@ -36,6 +40,9 @@ Everything editable is in one block at the top of the file:
 | `TCU_PERSON_ID` | `…/about-connie-edwards-mcgaughy/#/schema/person/connie-edwards-mcgaughy` | The permanent entity identifier. See below. |
 | `TCU_ORGANIZATION_ID` | `https://thecarrotunderground.com/#organization` | Yoast's existing Organization, confirmed from live output. |
 | `TCU_LINK_ORGANIZATION_FOUNDER` | `true` | Adds `founder` to the Organization node. Purely additive. |
+| `TCU_SPLIT_ORG_SAMEAS` | `true` | Removes the personal profiles from the Organization's `sameAs`. See below. |
+| `TCU_LINK_SIBLING_BOOKS` | `true` | Ties the two volumes together as a `BookSeries`. |
+| `TCU_BOOK_SERIES_ID` | `…/#/schema/series/carrot-underground-cookbook` | The series identifier. |
 
 Job titles match the line printed on the About page itself ("Longtime Vegan Recipe
 Developer • Cookbook Author • Photographer • Founder of The Carrot Underground"). If that
@@ -65,29 +72,103 @@ third Connie as far as Google is concerned, splitting the entity signal between 
 
 ---
 
+## Person profiles vs brand profiles
+
+A profile listed on both entities corroborates neither of them cleanly. Google is being
+asked "which of these two things is this account?" and getting the answer "both".
+
+So the split is now explicit. `tcu_person_schema_personal_profiles()` is a single list that
+does two jobs — it *is* the `Person`'s `sameAs`, and it is what gets removed from the
+`Organization`'s `sameAs`. One list, so the two can never drift apart.
+
+| Profile | Belongs to | Why |
+| --- | --- | --- |
+| `wikidata.org/wiki/Q138577229` | Person | The item is `instance of: human`. |
+| `linkedin.com/in/connie-edwards-mcgaughy` | Person | An `/in/` URL is a personal profile; a company would be `/company/`. |
+| `goodreads.com/author/show/71756303…` | Person | An author profile. |
+| `x.com/veganconnie` | Person | The handle names a person. **See the caveat below.** |
+| `facebook.com/thecarrotunderground/` | Organization | Brand page. |
+| `instagram.com/thecarrotunderground/` | Organization | Brand handle. |
+| `pinterest.com/thecarrotunderground` | Organization | Brand handle. |
+| `youtube.com/channel/UC0l81mHV9MdJXko-yrVphug` | Organization | The channel is titled "The Carrot Underground" — confirmed from its feed. |
+
+The two entities remain firmly connected regardless, through `founder`, `worksFor` and
+`affiliation`. Separating the profile lists does not weaken that; it sharpens it.
+
+**The one judgement call is `x.com/veganconnie`.** The handle names a person, so it is
+treated as hers. That account renders entirely in JavaScript, so its display name could not
+be read from the server the way the YouTube channel's could. If it actually posts as the
+brand, move that one line out of `tcu_person_schema_personal_profiles()` and into Yoast's
+Other profiles, and it swaps over.
+
+### How the Organization side is enforced
+
+Yoast emits its **Settings → Site representation → Other profiles** list as the
+Organization's `sameAs` on *every* page, so the filter tidies it on every page too, not
+just on the About page. It is purely subtractive and only ever removes URLs this file
+publishes on the `Person` — nothing can go missing from the graph as a whole, and there is
+a test asserting exactly that.
+
+The tidier fix is to delete those two lines in the Yoast settings screen, after which this
+does nothing at all and simply stops them coming back. Until then, be aware that the Yoast
+settings screen will list a profile the page no longer prints.
+
+---
+
 ## The cookbooks
 
 Both published e-cookbooks are emitted as `Book` nodes authored by that same `@id`.
 They are defined in `tcu_person_schema_books()`.
 
-They currently sit on the About page. That is deliberate and it is honest: the page's own
-copy says *"I recently published my first two vegan e-cookbooks"* and links to the shop, so
-the markup describes something a reader can actually see. Structured data for content that
-is not on the page is a guidelines violation, not a shortcut.
+Each one now lives on its **own dedicated page**, which is where its full definition is
+emitted and what its `url` points at:
 
-The page node gets `mentions` pointing at both books. That is what earns them their place in
-the graph — the page mentions them; Connie remains the page's `mainEntity`.
+| | Page | ID |
+| --- | --- | --- |
+| Volume One | `/the-carrot-underground-cookbook-vol-1/` | `28270` |
+| Volume Two | `/the-carrot-underground-cookbook-vol-2/` | `28306` |
 
-### Moving a book to its own page later
+On its own page a Book becomes that page's `mainEntity`, and carries `mainEntityOfPage`
+back — the link is closed in both directions. It also reuses the cover `ImageObject` Yoast
+already emits for the page rather than adding a second node for the same file, and a minimal
+`Person` stub (name and url only) is emitted alongside so the `author` reference resolves.
+
+That stub is not a second Connie. JSON-LD merges nodes by `@id`, so the stub and the full
+About-page profile are read as one entity, described in more detail in one place than the
+other. There is a test asserting the stub carries no profile detail of its own.
+
+### `url` and `shopUrl` are two different facts
+
+The Book's `url` is its page on this site — the canonical home of the work. The **Offer**'s
+url is the Shopify listing, because that is where the transaction actually happens. Both
+are true and they are not the same claim; the previous version used the Shopify URL for
+both, which is what this release fixes.
+
+### The About page still refers to both
+
+The About page copy says *"I recently published my first two vegan e-cookbooks"*, so it
+keeps a short **reference** to each under `mentions` — name, url and author only, not a
+second copy of the definition. Connie remains that page's `mainEntity`.
+
+Each cookbook page also links to the other volume ("Looking for Volume Two?"), so each one
+carries a reference to its sibling too.
+
+### The series
+
+Both volumes are `isPartOf` a `BookSeries` — *The Carrot Underground Cookbook* — which in
+turn lists them under `hasPart` and is credited to the same author `@id`.
+
+`isRelatedTo` is the obvious-looking way to link two books and it is **wrong**: it is
+defined on `Product` and `Service`, not on `CreativeWork`, so on a `Book` it is an unknown
+field. The schema.org validator flags it. A series is both valid and a truer description —
+these genuinely are Volume One and Volume Two of one thing.
+
+### Moving a book to a different page later
 
 Change that book's `page` value to the new page's ID. Nothing else. The `@id` is rooted at
-the domain (`https://thecarrotunderground.com/#/schema/book/...`) rather than at the About
-page, so moving where the node is *emitted* does not change what the Book *is*.
-
-When a Book lands on a page that has no full profile, a minimal `Person` stub (name and url
-only) is emitted alongside it so the `author` reference resolves. That is not a second
-Connie — JSON-LD merges nodes by `@id`, so the stub and the full About-page profile are read
-as one entity described in more detail in one place. There is a test covering exactly this.
+the domain (`https://thecarrotunderground.com/#/schema/book/...`) rather than at whichever
+page emits it, so moving the node does not change what the Book *is* — which is exactly why
+moving both off the About page cost nothing that Google had already read.
 
 ### What Book markup will and will not do
 
@@ -105,11 +186,14 @@ Knowledge Panel bid, that is the point.
 | --- | --- | --- |
 | Published | 2024-10-01 | 2024-11-01 |
 | Pages | 63 | 70 |
-| Price | $9.99 | $9.99 |
+| Recipes | 45 | 35 |
+| Price | $9.99 USD | $9.99 USD |
 | Goodreads | [256792999](https://www.goodreads.com/book/show/256792999-the-carrot-underground-cookbook---volume-one) | [256793045](https://www.goodreads.com/book/show/256793045-the-carrot-underground-cookbook---volume-two) |
 | Google Play Books | `RzH1EQAAQBAJ` | `OzX1EQAAQBAJ` |
+| WikiData | [Q141124581](https://www.wikidata.org/wiki/Q141124581) | *none yet* |
 
-Publication dates and page counts are from Goodreads. Note these are *not* the Shopify
+Publication dates and page counts match the **Book Details** panel printed on each cookbook
+page, and were originally taken from Goodreads. Note these are *not* the Shopify
 `published_at` dates (2024-10-23 and 2024-11-25) — those are when the products were listed
 in the store, which is a different fact from when the books were published.
 
@@ -186,8 +270,8 @@ the rest of the graph.
 
 ## What this produces
 
-The About page graph gains three nodes — the Person and the two Books — plus the references
-that tie them to what Yoast already outputs:
+The About page graph gains ten nodes — the Person, a reference to each of the two Books, and
+seven press Articles — plus the edges that tie them to what Yoast already outputs:
 
 ```jsonc
 {
@@ -218,20 +302,59 @@ that tie them to what Yoast already outputs:
   "sameAs": [...]
 },
 {
-  "@type": "Book",                                                      // added, x2
+  "@type": "Book",                                                      // added, x2 (reference only)
   "@id": "https://thecarrotunderground.com/#/schema/book/carrot-underground-cookbook-volume-one",
   "name": "The Carrot Underground Cookbook - Volume One: How to Host Plant-Based Parties Everyone Will Love",
-  "author": { "@id": "…#/schema/person/connie-edwards-mcgaughy" },
-  "publisher": { "@id": "https://thecarrotunderground.com/#organization" },
-  "bookFormat": "https://schema.org/EBook",
-  "datePublished": "2024-10-01",
-  "numberOfPages": 63,
-  "offers": { "@type": "Offer", "price": "9.99", "priceCurrency": "USD", … },
-  "sameAs": ["https://www.goodreads.com/book/show/256792999-…"]
+  "url": "https://thecarrotunderground.com/the-carrot-underground-cookbook-vol-1/",
+  "author": { "@id": "…#/schema/person/connie-edwards-mcgaughy" }
 }
 ```
 
-The full expected output is in [`output-about-page-schema.json`](output-about-page-schema.json).
+On each cookbook page the full `Book` definition appears instead:
+
+```jsonc
+{
+  "@type": ["WebPage", "ItemPage"],
+  "@id": "https://thecarrotunderground.com/the-carrot-underground-cookbook-vol-1/",
+  "mainEntity": { "@id": "…#/schema/book/carrot-underground-cookbook-volume-one" },  // added
+  "mentions": [ { "@id": "…#/schema/book/carrot-underground-cookbook-volume-two" } ] // added
+},
+{
+  "@type": "Book",                                                      // added
+  "@id": "https://thecarrotunderground.com/#/schema/book/carrot-underground-cookbook-volume-one",
+  "name": "The Carrot Underground Cookbook - Volume One: How to Host Plant-Based Parties Everyone Will Love",
+  "url": "https://thecarrotunderground.com/the-carrot-underground-cookbook-vol-1/",
+  "mainEntityOfPage": { "@id": "https://thecarrotunderground.com/the-carrot-underground-cookbook-vol-1/" },
+  "image": { "@id": "…/the-carrot-underground-cookbook-vol-1/#primaryimage" },
+  "author": { "@id": "…#/schema/person/connie-edwards-mcgaughy" },
+  "publisher": { "@id": "https://thecarrotunderground.com/#organization" },
+  "isPartOf": { "@id": "…#/schema/series/carrot-underground-cookbook" },
+  "bookFormat": "https://schema.org/EBook",
+  "datePublished": "2024-10-01",
+  "numberOfPages": 63,
+  "offers": { "@type": "Offer", "price": "9.99", "priceCurrency": "USD", "url": "…myshopify.com/products/…" },
+  "sameAs": ["https://www.wikidata.org/wiki/Q141124581", "https://www.goodreads.com/…", "https://play.google.com/…"]
+},
+{
+  "@type": "BookSeries",                                                // added
+  "@id": "https://thecarrotunderground.com/#/schema/series/carrot-underground-cookbook",
+  "name": "The Carrot Underground Cookbook",
+  "author": { "@id": "…#/schema/person/connie-edwards-mcgaughy" },
+  "hasPart": [ { "@id": "…volume-one" }, { "@id": "…volume-two" } ]
+},
+{
+  "@type": "Person",                                                    // added (stub)
+  "@id": "https://thecarrotunderground.com/about-connie-edwards-mcgaughy/#/schema/person/connie-edwards-mcgaughy",
+  "name": "Connie Edwards McGaughy",
+  "url": "https://thecarrotunderground.com/about-connie-edwards-mcgaughy/"
+}
+```
+
+The full expected output for all three pages is checked in:
+
+- [`output-about-page-schema.json`](output-about-page-schema.json) — 15 nodes
+- [`output-book-page-1-schema.json`](output-book-page-1-schema.json) — 9 nodes
+- [`output-book-page-2-schema.json`](output-book-page-2-schema.json) — 9 nodes
 
 The Person node is emitted **only** on the About page. That page is the entity's canonical
 home; everywhere else references it by `@id`. Repeating the full definition site-wide would
@@ -244,10 +367,9 @@ hand Google the same entity on every URL with no single place that owns it.
 - **Goodreads.** `https://www.goodreads.com/veganconnie` is a 301 redirect. The canonical
   author URL `https://www.goodreads.com/author/show/71756303.Connie_Edwards_McGaughy` is
   used instead, so `sameAs` points at the destination rather than a hop.
-- **LinkedIn.** `linkedin.com/in/connie-edwards-mcgaughy` is a personal profile and is now
-  on the `Person`. It is still on Yoast's `Organization` `sameAs` as well — that list is
-  managed in the Yoast admin UI and this snippet deliberately does not touch it. Removing
-  it there is a one-click change if wanted.
+- **LinkedIn.** `linkedin.com/in/connie-edwards-mcgaughy` is a personal profile and lives on
+  the `Person`. It is removed from the Organization's `sameAs` as the graph is built — see
+  *Person profiles vs brand profiles* above.
 - **WikiData.** `https://www.wikidata.org/wiki/Q138577229`, located on wikidata.org and
   listed first in `sameAs`. It is the one entry Google's Knowledge Graph reads directly
   rather than merely as corroboration. The item already carries `instance of: human`,
@@ -273,6 +395,23 @@ hand Google the same entity on every URL with no single place that owns it.
   If it is ever deleted, the `sameAs` entry becomes a dead link — so the published cookbooks
   are worth citing on it.
 
+  Also still missing from the person item: **P800 notable work → Q141124581**. The book item
+  points at her; she does not point back at it.
+
+- **WikiData, the book items.** `Q141124581` is *The Carrot Underground Cookbook - Volume
+  One* — `instance of: book`, `author: Q138577229`, title and subtitle as separate
+  statements, published 2024-10-01, Goodreads work ID `301149132`, official website the
+  Volume One page. It is in that book's `sameAs`.
+
+  **There is no item for Volume Two yet.** Searching WikiData for it returns nothing. When
+  one exists, add its URL to the Volume Two `sameAs` in `tcu_person_schema_books()`. There
+  is a test asserting WikiData is only listed where an item actually exists, so the current
+  asymmetry is deliberate rather than an oversight.
+
+- **The Organization has no WikiData item either.** *The Carrot Underground* itself returns
+  no results. Creating one, with `founded by → Q138577229`, would give the brand the same
+  kind of direct Knowledge Graph anchor the person already has.
+
 ---
 
 ## Tests
@@ -281,12 +420,18 @@ hand Google the same entity on every URL with no single place that owns it.
 php tests/test-person-schema.php
 ```
 
-121 assertions, no WordPress or Yoast install required. (`tests/test-book-on-own-page.php`
+213 assertions, no WordPress or Yoast install required. (`tests/test-book-on-own-page.php`
 runs as a second process because it has to redefine the book list before the plugin loads;
 the main suite invokes it and folds in its results.) The WordPress functions the snippet
-calls are stubbed and the filter is run against `tests/fixture-live-graph.json` — the real
-`@graph` captured from the live About page on 2026-08-17 — so the assertions run against the
-exact structure Yoast is producing on the site today, not an idealised version of it.
+calls are stubbed and the filter is run against three fixtures — the real `@graph` captured
+from the live About page and from both live cookbook pages — so the assertions run against
+the exact structure Yoast is producing on the site today, not an idealised version of it.
+
+| Fixture | Captured from | On |
+| --- | --- | --- |
+| `fixture-live-graph.json` | `/about-connie-edwards-mcgaughy/` | 2026-08-17 |
+| `fixture-book-page-1-graph.json` | `/the-carrot-underground-cookbook-vol-1/` | 2026-08-24 |
+| `fixture-book-page-2-graph.json` | `/the-carrot-underground-cookbook-vol-2/` | 2026-08-24 |
 
 Covered:
 
@@ -294,24 +439,59 @@ Covered:
 - `worksFor` / `affiliation` resolve to Yoast's existing Organization
 - `image` reuses the existing `ImageObject` rather than adding a second one
 - Yoast's `WebSite`, `BreadcrumbList` and `ImageObject` pieces come out byte-for-byte identical
-- `founder` is the *only* change to the Organization node; `mainEntity` the *only* change to the ProfilePage
+- `founder` and `sameAs` are the *only* changes to the Organization node; `mainEntity`,
+  `mentions` and `citation` the *only* changes to the ProfilePage
+- no personal profile is left on the Organization and no brand profile is claimed by the
+  Person — the two now share nothing at all. A **control** asserts a personal profile really
+  was on the Organization to begin with, otherwise "none left" would pass on an empty set
+- every profile removed from the Organization reappears on the Person; nothing is dropped
+- the Organization `sameAs` is separated *site-wide*, not just on the About page, and that
+  is the **only** difference off the About page
 - every `@id` reference in the finished graph resolves to a node in that graph — no dangling references
 - no two nodes share an `@id`
-- every other page on the site is returned completely unmodified
-- running the filter twice cannot produce a second Connie
+- running the filter twice cannot produce a second Connie, on any of the three pages
 - degraded input (no ImageObject, no Organization, empty graph) still produces valid output
   rather than broken references
 - both Books reference the author by `@id` rather than restating her inline — there is a
   specific assertion for this, because inlining the author is the exact mistake that would
   silently create a second Connie
-- a Book moved to its own page keeps its identity, gets a Person stub so nothing dangles,
-  does not claim to be that page's `mainEntity`, and does not drag the other book with it
+- each Book keeps the same `@id` it had when it lived on the About page — the identity
+  survived the move
+- each Book's `url` is its page on this site while the Offer's url is the shop
+- each cookbook page declares its Book as `mainEntity` and the Book points back
+- the cover `ImageObject` is reused, so there is still only one on the page
+- the About page carries a *reference* to each book, not a second copy of the definition
+- the two volumes carry different Play Books ids and different titles — pasting the same one
+  twice is the easy mistake, and it would merge the two books into one entity
+- WikiData is listed only on the volume that actually has an item
+- no `isRelatedTo` on a `Book`; the series link is `isPartOf` / `hasPart`
 - no press article is ever credited to Connie as `author`, each is linked to her via
   `mentions`, and the two articles that do not mention her stay out of the graph
 - the journalists named in press bylines do not leak into the graph as extra `Person` nodes
 
-The generated graph was also run through `validator.schema.org`: **0 errors, 0 warnings**,
-with the `Person` correctly resolving from the `ProfilePage`'s `mainEntity`.
+All three generated graphs were run through `validator.schema.org`: **0 errors, 0 warnings**
+each, with the `Person` resolving from the `ProfilePage`'s `mainEntity` and each `Book` from
+its own page's.
+
+---
+
+## Site-side observations
+
+Not schema, and not changed by this file — but found while checking the new pages, and all
+easy wins:
+
+- **The About page still links "my first two vegan e-cookbooks" to the Shopify store root.**
+  Now that both cookbooks have pages on the site, that phrase should link to them instead.
+  An internal link from the profile page to each book page is exactly the path Google
+  follows to connect the entities.
+- **Volume Two's page is not set as an Item Page in Yoast.** Volume One's page node comes out
+  as `["WebPage", "ItemPage"]`; Volume Two's is plain `WebPage`. That is the *Page type*
+  setting in the Yoast box on the page editor. Harmless, but they should match.
+- **A tracking parameter on the Volume One page's Goodreads link.** The "Goodreads ↗" link
+  ends `?utm_source=chatgpt.com`. Worth stripping — the clean URL is what is in `sameAs`.
+- **Cache.** The site is on BigScoots O2O with an `s-maxage` of a year in front of Cloudflare.
+  After replacing the plugin file, purge from the BigScoots menu in the WP admin bar before
+  validating anything, or you will be reading a stale page.
 
 ---
 

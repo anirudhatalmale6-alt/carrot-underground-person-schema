@@ -1,11 +1,15 @@
 <?php
 /**
- * Forward-looking test: what happens when a cookbook gets its own page.
+ * A cookbook reassigned to a different page, with the book list overridden.
  *
- * This is a separate process from the main suite because it has to define a
- * different book list *before* the plugin loads, and PHP will not let a function
- * be declared twice. The plugin's tcu_person_schema_books() is wrapped in
- * function_exists precisely so it can be replaced like this.
+ * The real cookbook pages are covered by section 12 of the main suite against the
+ * live captured graphs. This one proves the other half: that the list can be
+ * replaced from outside the file, and that moving a book to a page ID that this
+ * file has never heard of still produces a complete, self-consistent graph.
+ *
+ * It is a separate process because it has to define a different book list *before*
+ * the plugin loads, and PHP will not let a function be declared twice. The plugin's
+ * tcu_person_schema_books() is wrapped in function_exists precisely for this.
  *
  * Run:  php tests/test-book-on-own-page.php   (the main suite runs it too)
  */
@@ -124,6 +128,10 @@ $book = node_by_id( $after, TCU_BOOK_VOLUME_ONE_ID );
 ok( null !== $book, 'the Book is emitted on its new page' );
 is_same( $book['author'], array( '@id' => TCU_PERSON_ID ), 'and still points at the same author @id - the identity survived the move' );
 
+// This entry has no shopUrl, which exercises the fallback: with nowhere else to
+// point, the Offer uses the book's own url rather than being dropped.
+is_same( $book['offers']['url'], $book['url'], 'with no separate shop URL, the Offer falls back to the book url' );
+
 $person = node_by_id( $after, TCU_PERSON_ID );
 ok( null !== $person, 'a Person stub is emitted so the author reference is not dangling' );
 is_same( $person['name'], 'Connie Edwards McGaughy', 'the stub names her' );
@@ -137,8 +145,10 @@ foreach ( $after as $piece ) {
 		break;
 	}
 }
-ok( ! isset( $page['mainEntity'] ), 'a book page does not claim Connie is its mainEntity - only the About page does that' );
-is_same( count( $page['mentions'] ), 1, 'the page mentions the one book that lives on it' );
+is_same( $page['mainEntity'], array( '@id' => TCU_BOOK_VOLUME_ONE_ID ), 'the page declares the Book as its mainEntity, not Connie' );
+ok( $page['mainEntity'] !== array( '@id' => TCU_PERSON_ID ), 'a book page never claims Connie is its mainEntity - only the About page does that' );
+ok( ! isset( $page['mentions'] ), 'with no other book in the list there is nothing to mention' );
+ok( ! isset( $book['isPartOf'] ), 'and no series, because a series of one is not a series' );
 
 $org = node_by_id( $after, TCU_ORGANIZATION_ID );
 ok( ! isset( $org['founder'] ), 'the founder edge is only added on the About page, not site-wide' );

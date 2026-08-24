@@ -141,9 +141,7 @@
             },
             "sameAs": [
                 "https://www.facebook.com/thecarrotunderground/",
-                "https://x.com/veganconnie",
                 "https://www.instagram.com/thecarrotunderground/",
-                "https://www.linkedin.com/in/connie-edwards-mcgaughy",
                 "https://www.pinterest.com/thecarrotunderground",
                 "https://www.youtube.com/channel/UC0l81mHV9MdJXko-yrVphug"
             ],
@@ -164,7 +162,7 @@
                 "Food Blogger",
                 "Photographer"
             ],
-            "description": "Connie Edwards McGaughy is a longtime vegan recipe developer, author, and creator of The Carrot Underground, based in San Diego, California.",
+            "description": "Connie Edwards McGaughy is a longtime vegan recipe developer, cookbook author, and founder of The Carrot Underground, based in San Diego, California.",
             "knowsAbout": [
                 "Vegan cooking",
                 "Plant-based baking",
@@ -173,13 +171,9 @@
             ],
             "sameAs": [
                 "https://www.wikidata.org/wiki/Q138577229",
-                "https://www.facebook.com/thecarrotunderground/",
-                "https://x.com/veganconnie",
-                "https://www.instagram.com/thecarrotunderground/",
                 "https://www.linkedin.com/in/connie-edwards-mcgaughy",
-                "https://www.pinterest.com/thecarrotunderground",
-                "https://www.youtube.com/channel/UC0l81mHV9MdJXko-yrVphug",
-                "https://www.goodreads.com/author/show/71756303.Connie_Edwards_McGaughy"
+                "https://www.goodreads.com/author/show/71756303.Connie_Edwards_McGaughy",
+                "https://x.com/veganconnie"
             ],
             "url": "https://thecarrotunderground.com/about-connie-edwards-mcgaughy/",
             "mainEntityOfPage": {
@@ -199,74 +193,18 @@
             "@type": "Book",
             "@id": "https://thecarrotunderground.com/#/schema/book/carrot-underground-cookbook-volume-one",
             "name": "The Carrot Underground Cookbook - Volume One: How to Host Plant-Based Parties Everyone Will Love",
+            "url": "https://thecarrotunderground.com/the-carrot-underground-cookbook-vol-1/",
             "author": {
                 "@id": "https://thecarrotunderground.com/about-connie-edwards-mcgaughy/#/schema/person/connie-edwards-mcgaughy"
-            },
-            "bookFormat": "https://schema.org/EBook",
-            "inLanguage": "en",
-            "description": "Your essential companion for hosting unforgettable, 100% plant-based gatherings that everyone, vegan or not, will love. Connie Edwards McGaughy shares her favorite recipes, top tips and ideas for creating entirely plant-based parties.",
-            "url": "https://qf01dx-q0.myshopify.com/products/the-carrot-underground-digital-cookbook-volume-one",
-            "image": "https://cdn.shopify.com/s/files/1/0720/4886/9602/files/TCU-Cookbook-Vol-1-Cover.png?v=1729902018",
-            "datePublished": "2024-10-01",
-            "numberOfPages": 63,
-            "genre": "Vegan cookbook",
-            "sameAs": [
-                "https://www.goodreads.com/book/show/256792999-the-carrot-underground-cookbook---volume-one",
-                "https://play.google.com/store/books/details?id=RzH1EQAAQBAJ"
-            ],
-            "about": {
-                "@type": "Thing",
-                "name": "Vegan entertaining"
-            },
-            "publisher": {
-                "@id": "https://thecarrotunderground.com/#organization"
-            },
-            "offers": {
-                "@type": "Offer",
-                "price": "9.99",
-                "priceCurrency": "USD",
-                "availability": "https://schema.org/InStock",
-                "url": "https://qf01dx-q0.myshopify.com/products/the-carrot-underground-digital-cookbook-volume-one",
-                "seller": {
-                    "@id": "https://thecarrotunderground.com/#organization"
-                }
             }
         },
         {
             "@type": "Book",
             "@id": "https://thecarrotunderground.com/#/schema/book/carrot-underground-cookbook-volume-two",
             "name": "The Carrot Underground Cookbook - Volume Two: How to Bake the Best Vegan Desserts and Treats",
+            "url": "https://thecarrotunderground.com/the-carrot-underground-cookbook-vol-2/",
             "author": {
                 "@id": "https://thecarrotunderground.com/about-connie-edwards-mcgaughy/#/schema/person/connie-edwards-mcgaughy"
-            },
-            "bookFormat": "https://schema.org/EBook",
-            "inLanguage": "en",
-            "description": "Everything you need for creating mouth-watering vegan desserts that everyone, even non-vegans, will adore. Connie Edwards McGaughy guides seasoned and first-time bakers through the art of baking without eggs or dairy.",
-            "url": "https://qf01dx-q0.myshopify.com/products/the-carrot-underground-cookbook-volume-two-how-to-bake-the-best-vegan-desserts-treats",
-            "image": "https://cdn.shopify.com/s/files/1/0720/4886/9602/files/TCU-Cookbook-Vol-Two-Cover.jpg?v=1732579285",
-            "datePublished": "2024-11-01",
-            "numberOfPages": 70,
-            "genre": "Vegan cookbook",
-            "sameAs": [
-                "https://www.goodreads.com/book/show/256793045-the-carrot-underground-cookbook---volume-two",
-                "https://play.google.com/store/books/details?id=OzX1EQAAQBAJ"
-            ],
-            "about": {
-                "@type": "Thing",
-                "name": "Vegan baking"
-            },
-            "publisher": {
-                "@id": "https://thecarrotunderground.com/#organization"
-            },
-            "offers": {
-                "@type": "Offer",
-                "price": "9.99",
-                "priceCurrency": "USD",
-                "availability": "https://schema.org/InStock",
-                "url": "https://qf01dx-q0.myshopify.com/products/the-carrot-underground-cookbook-volume-two-how-to-bake-the-best-vegan-desserts-treats",
-                "seller": {
-                    "@id": "https://thecarrotunderground.com/#organization"
-                }
             }
         },
         {

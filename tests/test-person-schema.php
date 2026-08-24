@@ -183,8 +183,50 @@ $org_before = node_by_id( $before, TCU_ORGANIZATION_ID );
 $org_after  = node_by_id( $after, TCU_ORGANIZATION_ID );
 
 is_same( $org_after['founder'], array( '@id' => TCU_PERSON_ID ), 'Organization gains founder -> Person' );
-unset( $org_after['founder'] );
-is_same( $org_after, $org_before, 'founder is the ONLY change to the Organization node' );
+
+$org_compare            = $org_after;
+$org_expected           = $org_before;
+$org_expected['sameAs'] = $org_after['sameAs'];
+unset( $org_compare['founder'] );
+is_same( $org_compare, $org_expected, 'founder and sameAs are the ONLY changes to the Organization node' );
+
+heading( '3b. Personal profiles and brand profiles are separated' );
+
+ok(
+	! empty( $org_before['sameAs'] ),
+	'the fixture Organization does carry a sameAs list (otherwise this proves nothing)'
+);
+
+$personal = tcu_person_schema_personal_profiles();
+
+// A control: at least one personal profile really was on the Organization to begin
+// with. Without this the "removed" assertions below would pass on an empty set.
+$was_on_org = array_values( array_intersect( $org_before['sameAs'], $personal ) );
+ok( ! empty( $was_on_org ), 'at least one personal profile was on the Organization before (control)' );
+
+$still_on_org = array_values( array_intersect( $org_after['sameAs'], $personal ) );
+is_same( $still_on_org, array(), 'no personal profile is left on the Organization' );
+
+foreach ( array(
+	'https://www.facebook.com/thecarrotunderground/',
+	'https://www.instagram.com/thecarrotunderground/',
+	'https://www.pinterest.com/thecarrotunderground',
+	'https://www.youtube.com/channel/UC0l81mHV9MdJXko-yrVphug',
+) as $brand ) {
+	$host = parse_url( $brand, PHP_URL_HOST );
+	ok( in_array( $brand, $org_after['sameAs'], true ), "$host stays on the Organization" );
+	ok( ! in_array( $brand, $person['sameAs'], true ), "$host is not also claimed by the Person" );
+}
+
+is_same(
+	array_values( array_intersect( $org_after['sameAs'], $person['sameAs'] ) ),
+	array(),
+	'the Person and the Organization now share no profile at all'
+);
+
+// Subtractive only: nothing may vanish from the graph as a whole.
+$lost = array_values( array_diff( $org_before['sameAs'], $org_after['sameAs'], $person['sameAs'] ) );
+is_same( $lost, array(), 'every profile removed from the Organization reappears on the Person - none is simply dropped' );
 
 $profile_before = node_by_type( $before, 'ProfilePage' );
 $profile_after  = node_by_type( $after, 'ProfilePage' );
@@ -254,15 +296,39 @@ is_same(
 	'WikiData is listed first - the strongest signal in the list'
 );
 
-heading( '6. Every other page is left alone' );
+is_same(
+	$person['description'],
+	'Connie Edwards McGaughy is a longtime vegan recipe developer, cookbook author, and founder of The Carrot Underground, based in San Diego, California.',
+	'description uses the wording Connie asked for - "cookbook author" and "founder", not "author" and "creator"'
+);
+
+heading( '6. Every other page keeps its own graph' );
 
 $GLOBALS['stub_current_page'] = array( 55, 'some-recipe-page', 'Some Recipe' );
 
 $other_before = live_graph();
 $other_after  = tcu_person_schema_filter_graph( $other_before );
 
-is_same( $other_after, $other_before, 'graph is returned completely unmodified off the About page' );
 ok( null === node_by_type( $other_after, 'Person' ), 'no Person node is emitted site-wide' );
+ok( null === node_by_type( $other_after, 'Book' ), 'no Book node is emitted site-wide' );
+is_same( count( $other_after ), count( $other_before ), 'no node is added or removed off the About page' );
+
+// The Organization node travels on every page, so its sameAs is tidied everywhere -
+// otherwise a recipe page would still hand Google the mixed list.
+$other_org = node_by_id( $other_after, TCU_ORGANIZATION_ID );
+is_same(
+	array_values( array_intersect( $other_org['sameAs'], tcu_person_schema_personal_profiles() ) ),
+	array(),
+	'the Organization sameAs is separated site-wide, not just on the About page'
+);
+
+$normalised = $other_after;
+foreach ( $normalised as $i => $piece ) {
+	if ( isset( $piece['@id'] ) && TCU_ORGANIZATION_ID === $piece['@id'] ) {
+		$normalised[ $i ]['sameAs'] = node_by_id( $other_before, TCU_ORGANIZATION_ID )['sameAs'];
+	}
+}
+is_same( $normalised, $other_before, 'and that is the only difference - nothing else on the page is touched' );
 
 heading( '7. Running twice cannot duplicate the entity' );
 
@@ -333,12 +399,11 @@ $no_org_person = node_by_id( tcu_person_schema_filter_graph( $no_org ), TCU_PERS
 ok( ! isset( $no_org_person['worksFor'] ), 'if the Organization is ever removed, worksFor is omitted rather than left dangling' );
 
 $empty_after = tcu_person_schema_filter_graph( array() );
-is_same( count( $empty_after ), 10, 'an empty graph still yields the Person, both Books and all seven press articles' );
+is_same( count( $empty_after ), 10, 'an empty graph still yields the Person, both Book references and all seven press articles' );
 ok( ! isset( $empty_after[0]['mainEntityOfPage'] ), 'and no reference to a page that is not there' );
-ok( ! isset( $empty_after[1]['publisher'] ), 'with no Organization present, the Books omit publisher rather than dangling' );
 is_same( dangling_refs( $empty_after ), array(), 'and the Book author references still resolve' );
 
-heading( '9. The cookbooks' );
+heading( '9. The cookbooks, as referred to from the About page' );
 
 $GLOBALS['stub_current_page'] = array( 1003, 'about-connie-edwards-mcgaughy', 'About Connie Edwards McGaughy' );
 
@@ -351,40 +416,25 @@ foreach ( $with_books as $piece ) {
 	}
 }
 
-is_same( count( $books ), 2, 'both cookbooks are in the graph' );
-
-$GLOBALS['play_ids'] = array();
+is_same( count( $books ), 2, 'both cookbooks are referenced from the About page' );
 
 foreach ( $books as $book ) {
 	$label = 'Volume ' . ( false !== strpos( $book['@id'], 'volume-one' ) ? 'One' : 'Two' );
 
 	is_same( $book['author'], array( '@id' => TCU_PERSON_ID ), "$label: author references the one Connie by @id, not restated inline" );
-	is_same( $book['publisher'], array( '@id' => TCU_ORGANIZATION_ID ), "$label: publisher references the existing Organization" );
-	is_same( $book['bookFormat'], 'https://schema.org/EBook', "$label: bookFormat is an EBook" );
-	ok( ! empty( $book['datePublished'] ), "$label: datePublished is set" );
-	ok( is_int( $book['numberOfPages'] ), "$label: numberOfPages is a number, not a string" );
-	is_same( $book['offers']['priceCurrency'], 'USD', "$label: offer currency is set" );
-	is_same( $book['offers']['seller'], array( '@id' => TCU_ORGANIZATION_ID ), "$label: the seller is the Organization" );
-
-	// Each volume must carry its OWN Play Books id. Pasting the same one twice is the
-	// obvious mistake here and it would merge the two books in Google's eyes.
-	$play = array_values( array_filter( $book['sameAs'], function ( $u ) { return false !== strpos( $u, 'play.google.com' ); } ) );
-	is_same( count( $play ), 1, "$label: has exactly one Google Play Books listing" );
-	$GLOBALS['play_ids'][] = $play[0];
-
-	$gr = array_values( array_filter( $book['sameAs'], function ( $u ) { return false !== strpos( $u, 'goodreads.com' ); } ) );
-	is_same( count( $gr ), 1, "$label: has exactly one Goodreads listing" );
-
-	// A Book whose author is spelled out inline instead of referenced would create a
-	// second Connie. This is the assertion that catches that regression.
 	ok( ! isset( $book['author']['name'] ), "$label: the author is not duplicated as a literal Person" );
-}
 
-is_same(
-	count( array_unique( $GLOBALS['play_ids'] ) ),
-	2,
-	'the two volumes point at DIFFERENT Play Books listings, not the same id pasted twice'
-);
+	// This is a reference, not a second copy of the definition. The full node lives
+	// on the book's own page; repeating it here would describe the same work twice.
+	ok( ! isset( $book['description'] ), "$label: the About page carries a reference, not the full description" );
+	ok( ! isset( $book['offers'] ), "$label: and not a second copy of the offer" );
+
+	is_same(
+		$book['url'],
+		'https://thecarrotunderground.com/the-carrot-underground-cookbook-vol-' . ( false !== strpos( $book['@id'], 'volume-one' ) ? '1' : '2' ) . '/',
+		"$label: url is the cookbook page on this site, not the Shopify listing"
+	);
+}
 
 $people = 0;
 foreach ( $with_books as $piece ) {
@@ -465,6 +515,162 @@ ok( false !== $json, 'the graph encodes to JSON without error' );
 ok( null !== json_decode( $json, true ), 'and decodes back cleanly' );
 
 file_put_contents( __DIR__ . '/../output-about-page-schema.json', $json . "\n" );
+
+/* ================================================================ *
+ * 12. Each cookbook on its own page
+ *
+ * The fixtures here are the real @graph Yoast emits on the two cookbook pages,
+ * captured 2026-08-24, so these assertions run against the live structure rather
+ * than an invented one.
+ * ================================================================ */
+
+heading( '12. Each cookbook on its own dedicated page' );
+
+$book_pages = array(
+	array(
+		'label'    => 'Volume One',
+		'page'     => array( 28270, 'the-carrot-underground-cookbook-vol-1', 'The Carrot Underground Cookbook - Vol. 1' ),
+		'fixture'  => 'fixture-book-page-1-graph.json',
+		'book'     => 'https://thecarrotunderground.com/#/schema/book/carrot-underground-cookbook-volume-one',
+		'sibling'  => 'https://thecarrotunderground.com/#/schema/book/carrot-underground-cookbook-volume-two',
+		'url'      => 'https://thecarrotunderground.com/the-carrot-underground-cookbook-vol-1/',
+		'pages'    => 63,
+		'wikidata' => true,
+	),
+	array(
+		'label'    => 'Volume Two',
+		'page'     => array( 28306, 'the-carrot-underground-cookbook-vol-2', 'The Carrot Underground Cookbook – Vol. 2' ),
+		'fixture'  => 'fixture-book-page-2-graph.json',
+		'book'     => 'https://thecarrotunderground.com/#/schema/book/carrot-underground-cookbook-volume-two',
+		'sibling'  => 'https://thecarrotunderground.com/#/schema/book/carrot-underground-cookbook-volume-one',
+		'url'      => 'https://thecarrotunderground.com/the-carrot-underground-cookbook-vol-2/',
+		'pages'    => 70,
+		'wikidata' => false,
+	),
+);
+
+$GLOBALS['play_ids']  = array();
+$GLOBALS['book_names'] = array();
+
+foreach ( $book_pages as $case ) {
+	$label = $case['label'];
+
+	$GLOBALS['stub_current_page'] = $case['page'];
+
+	$page_before = json_decode( file_get_contents( __DIR__ . '/' . $case['fixture'] ), true );
+	$page_after  = tcu_person_schema_filter_graph( $page_before );
+
+	ok( null === node_by_type( $page_before, 'Book' ), "$label: the live page has no Book entity today (the problem being fixed)" );
+
+	$book = node_by_id( $page_after, $case['book'] );
+	ok( null !== $book, "$label: the Book node is emitted on its own page" );
+
+	// The identity did not change when the book moved off the About page. If this
+	// string had been derived from the page it was emitted on, moving it would have
+	// thrown away everything Google had already associated with it.
+	is_same( $book['@id'], $case['book'], "$label: keeps the same @id it had on the About page" );
+
+	is_same( $book['url'], $case['url'], "$label: url is this page, not the Shopify listing" );
+	is_same( $book['author'], array( '@id' => TCU_PERSON_ID ), "$label: author references the one Connie by @id" );
+	is_same( $book['publisher'], array( '@id' => TCU_ORGANIZATION_ID ), "$label: publisher references the existing Organization" );
+	is_same( $book['bookFormat'], 'https://schema.org/EBook', "$label: bookFormat is an EBook" );
+	is_same( $book['numberOfPages'], $case['pages'], "$label: numberOfPages matches the Book Details panel on the page" );
+	ok( ! empty( $book['datePublished'] ), "$label: datePublished is set" );
+
+	// The complete title - main title and subtitle - as Connie asked.
+	ok( false !== strpos( $book['name'], ': How to ' ), "$label: name carries the full title including the subtitle" );
+	$GLOBALS['book_names'][] = $book['name'];
+
+	// The page and the book agree about each other, in both directions.
+	$page_node = node_by_type( $page_after, 'WebPage' );
+	is_same( $page_node['mainEntity'], array( '@id' => $case['book'] ), "$label: the page declares the Book as its mainEntity" );
+	is_same( $book['mainEntityOfPage'], array( '@id' => $case['url'] ), "$label: and the Book points back at the page" );
+
+	// The cover already on the page is reused rather than a second ImageObject added.
+	is_same( $book['image'], array( '@id' => $case['url'] . '#primaryimage' ), "$label: reuses the cover ImageObject Yoast already emits" );
+	$image_nodes = 0;
+	foreach ( $page_after as $piece ) {
+		if ( in_array( 'ImageObject', (array) $piece['@type'], true ) ) { $image_nodes++; }
+	}
+	is_same( $image_nodes, 1, "$label: still only one ImageObject on the page" );
+
+	// Book url and Offer url are two different facts.
+	ok( false !== strpos( $book['offers']['url'], 'myshopify.com' ), "$label: the Offer still points at the shop, where you actually buy it" );
+	is_same( $book['offers']['priceCurrency'], 'USD', "$label: offer currency is set" );
+	is_same( $book['offers']['price'], '9.99', "$label: offer price matches the Shopify listing" );
+	is_same( $book['offers']['seller'], array( '@id' => TCU_ORGANIZATION_ID ), "$label: the seller is the Organization" );
+
+	// Each volume must carry its OWN Play Books id. Pasting the same one twice is the
+	// obvious mistake here and it would merge the two books in Google's eyes.
+	$play = array_values( array_filter( $book['sameAs'], function ( $u ) { return false !== strpos( $u, 'play.google.com' ); } ) );
+	is_same( count( $play ), 1, "$label: has exactly one Google Play Books listing" );
+	$GLOBALS['play_ids'][] = $play[0];
+
+	$gr = array_values( array_filter( $book['sameAs'], function ( $u ) { return false !== strpos( $u, 'goodreads.com' ); } ) );
+	is_same( count( $gr ), 1, "$label: has exactly one Goodreads listing" );
+
+	$wd = array_values( array_filter( $book['sameAs'], function ( $u ) { return false !== strpos( $u, 'wikidata.org' ); } ) );
+	is_same( count( $wd ), $case['wikidata'] ? 1 : 0, "$label: WikiData listed only where an item actually exists" );
+
+	// The sibling volume: linked from the page, so linked in the graph.
+	$sibling = node_by_id( $page_after, $case['sibling'] );
+	ok( null !== $sibling, "$label: the other volume is present as a reference" );
+	ok( ! isset( $sibling['offers'] ), "$label: the other volume is a reference, not a second full definition" );
+	is_same( $page_node['mentions'], array( array( '@id' => $case['sibling'] ) ), "$label: the page mentions the other volume" );
+
+	// The two volumes are tied together through the series, not through isRelatedTo -
+	// which is a Product/Service property and an unknown field on a Book.
+	is_same( $book['isPartOf'], array( '@id' => TCU_BOOK_SERIES_ID ), "$label: is part of the cookbook series" );
+	ok( ! isset( $book['isRelatedTo'] ), "$label: no isRelatedTo - it is not a CreativeWork property" );
+
+	$series = node_by_id( $page_after, TCU_BOOK_SERIES_ID );
+	ok( null !== $series, "$label: the BookSeries node is present" );
+	is_same( $series['@type'], 'BookSeries', "$label: typed BookSeries" );
+	is_same( count( $series['hasPart'] ), 2, "$label: the series has both volumes as parts" );
+	is_same( $series['author'], array( '@id' => TCU_PERSON_ID ), "$label: the series is credited to the same author @id" );
+	ok( ! isset( $sibling['isPartOf'] ), "$label: the stub volume stays minimal - the series declares it instead" );
+
+	// A stub Connie, so the author reference has something to resolve to.
+	$stub = node_by_id( $page_after, TCU_PERSON_ID );
+	ok( null !== $stub, "$label: a Person stub is emitted so the author reference is not dangling" );
+	ok( ! isset( $stub['jobTitle'] ), "$label: the stub carries no profile detail - the About page owns that" );
+	ok( ! isset( $stub['sameAs'] ), "$label: and no second copy of the sameAs list" );
+
+	$org = node_by_id( $page_after, TCU_ORGANIZATION_ID );
+	ok( ! isset( $org['founder'] ), "$label: the founder edge is only added on the About page, not site-wide" );
+	is_same(
+		array_values( array_intersect( $org['sameAs'], tcu_person_schema_personal_profiles() ) ),
+		array(),
+		"$label: the Organization sameAs is separated here too"
+	);
+
+	is_same( dangling_refs( $page_after ), array(), "$label: no dangling references" );
+	is_same( tcu_person_schema_filter_graph( $page_after ), $page_after, "$label: a second pass is a no-op" );
+
+	// Yoast's own pieces are untouched apart from the two edges added to the page node.
+	foreach ( array( 'WebSite', 'BreadcrumbList', 'ImageObject' ) as $type ) {
+		is_same( node_by_type( $page_after, $type ), node_by_type( $page_before, $type ), "$label: $type piece is byte-for-byte unchanged" );
+	}
+
+	file_put_contents(
+		__DIR__ . '/../output-' . str_replace( 'fixture-', '', str_replace( '-graph.json', '', $case['fixture'] ) ) . '-schema.json',
+		json_encode(
+			array( '@context' => 'https://schema.org', '@graph' => $page_after ),
+			JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT
+		) . "\n"
+	);
+}
+
+is_same(
+	count( array_unique( $GLOBALS['play_ids'] ) ),
+	2,
+	'the two volumes point at DIFFERENT Play Books listings, not the same id pasted twice'
+);
+is_same(
+	count( array_unique( $GLOBALS['book_names'] ) ),
+	2,
+	'and carry different titles, not the same string pasted twice'
+);
 
 /* ---------------------------------------------------------------- *
  * The "book on its own page" scenario needs a different book list defined before
