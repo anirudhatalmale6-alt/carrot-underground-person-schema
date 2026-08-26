@@ -114,7 +114,8 @@
                 "https://www.facebook.com/thecarrotunderground/",
                 "https://www.instagram.com/thecarrotunderground/",
                 "https://www.pinterest.com/thecarrotunderground",
-                "https://www.youtube.com/channel/UC0l81mHV9MdJXko-yrVphug"
+                "https://www.youtube.com/channel/UC0l81mHV9MdJXko-yrVphug",
+                "https://www.wikidata.org/wiki/Q141171005"
             ]
         },
         {
@@ -135,6 +136,7 @@
             "numberOfPages": 70,
             "genre": "Vegan cookbook",
             "sameAs": [
+                "https://www.wikidata.org/wiki/Q141170741",
                 "https://www.goodreads.com/book/show/256793045-the-carrot-underground-cookbook---volume-two",
                 "https://play.google.com/store/books/details?id=OzX1EQAAQBAJ"
             ],

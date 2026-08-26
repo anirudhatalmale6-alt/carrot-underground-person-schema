@@ -41,6 +41,7 @@ Everything editable is in one block at the top of the file:
 | `TCU_ORGANIZATION_ID` | `https://thecarrotunderground.com/#organization` | Yoast's existing Organization, confirmed from live output. |
 | `TCU_LINK_ORGANIZATION_FOUNDER` | `true` | Adds `founder` to the Organization node. Purely additive. |
 | `TCU_SPLIT_ORG_SAMEAS` | `true` | Removes the personal profiles from the Organization's `sameAs`. See below. |
+| `TCU_ADD_ORG_PROFILES` | `true` | Adds the brand's own WikiData item to the Organization's `sameAs`. The additive counterpart to the line above. |
 | `TCU_LINK_SIBLING_BOOKS` | `true` | Ties the two volumes together as a `BookSeries`. |
 | `TCU_BOOK_SERIES_ID` | `…/#/schema/series/carrot-underground-cookbook` | The series identifier. |
 
@@ -91,6 +92,7 @@ does two jobs — it *is* the `Person`'s `sameAs`, and it is what gets removed f
 | `instagram.com/thecarrotunderground/` | Organization | Brand handle. |
 | `pinterest.com/thecarrotunderground` | Organization | Brand handle. |
 | `youtube.com/channel/UC0l81mHV9MdJXko-yrVphug` | Organization | The channel is titled "The Carrot Underground" — confirmed from its feed. |
+| `wikidata.org/wiki/Q141171005` | Organization | The item is `instance of: website`, `founder: Q138577229`. Added by this file — see below. |
 
 The two entities remain firmly connected regardless, through `founder`, `worksFor` and
 `affiliation`. Separating the profile lists does not weaken that; it sharpens it.
@@ -112,6 +114,19 @@ a test asserting exactly that.
 The tidier fix is to delete those two lines in the Yoast settings screen, after which this
 does nothing at all and simply stops them coming back. Until then, be aware that the Yoast
 settings screen will list a profile the page no longer prints.
+
+There is an additive half as well — `tcu_person_schema_add_org_profiles()`, controlled by
+`TCU_ADD_ORG_PROFILES`. It puts the brand's own WikiData item on the Organization, which is
+a profile Yoast has no field for. It never adds a URL the node already carries, compared the
+same slash-and-case-insensitive way, so adding it to Yoast's Other profiles later will not
+produce the same profile twice. Facebook, Instagram, Pinterest and YouTube are deliberately
+*not* in that list — Yoast already publishes them, and duplicating them here would only give
+the two lists a chance to disagree later.
+
+Both WikiData items now point at each other in both systems at once: `Q141171005` has
+`founder → Q138577229`, and in the markup the `Organization` carries `Q141171005` while the
+`Person` carries `Q138577229`. That mutual agreement between the site and WikiData is the
+part the Knowledge Graph actually reads.
 
 ---
 
@@ -190,7 +205,7 @@ Knowledge Panel bid, that is the point.
 | Price | $9.99 USD | $9.99 USD |
 | Goodreads | [256792999](https://www.goodreads.com/book/show/256792999-the-carrot-underground-cookbook---volume-one) | [256793045](https://www.goodreads.com/book/show/256793045-the-carrot-underground-cookbook---volume-two) |
 | Google Play Books | `RzH1EQAAQBAJ` | `OzX1EQAAQBAJ` |
-| WikiData | [Q141124581](https://www.wikidata.org/wiki/Q141124581) | *none yet* |
+| WikiData | [Q141124581](https://www.wikidata.org/wiki/Q141124581) | [Q141170741](https://www.wikidata.org/wiki/Q141170741) |
 
 Publication dates and page counts match the **Book Details** panel printed on each cookbook
 page, and were originally taken from Goodreads. Note these are *not* the Shopify
@@ -376,41 +391,64 @@ hand Google the same entity on every URL with no single place that owns it.
   occupations, US citizenship, San Diego as residence, and `official website` →
   `thecarrotunderground.com`.
 
-  The link is currently one-way in places. To strengthen it, add these external-ID
-  statements to the WikiData item so it corroborates the same profile list the site
-  publishes:
+  The earlier round of external-ID suggestions has now partly been superseded, because the
+  brand has its own item. **The brand handles belong on `Q141171005`, not on the person** —
+  P2003, P2013, P2397 and P3836 are all on the Organization item already, which is correct.
+  What is still missing from the *person* item, and is still worth adding, is the short list
+  that identifies Connie rather than the site:
 
-  | Property | Value |
-  | --- | --- |
-  | P973 described at URL | `https://thecarrotunderground.com/about-connie-edwards-mcgaughy/` |
-  | P2002 X/Twitter username | `veganconnie` |
-  | P2003 Instagram username | `thecarrotunderground` |
-  | P2013 Facebook ID | `thecarrotunderground` |
-  | P2397 YouTube channel ID | `UC0l81mHV9MdJXko-yrVphug` |
-  | P2963 Goodreads author ID | `71756303` |
-  | P6634 LinkedIn personal profile ID | `connie-edwards-mcgaughy` |
+  | Property | Value | Why it is still worth adding |
+  | --- | --- | --- |
+  | P2963 Goodreads author ID | `71756303` | The one identifier that closes the loop on `goodreads.com/author/show/71756303…` in her `sameAs`. |
+  | P6634 LinkedIn personal profile ID | `connie-edwards-mcgaughy` | Same, for the LinkedIn entry. |
+  | P2002 X/Twitter username | `veganconnie` | Only if that account posts as Connie — see the caveat under *Person profiles vs brand profiles*. |
+  | P973 described at URL | `https://thecarrotunderground.com/about-connie-edwards-mcgaughy/` | Points the item at the page that carries the `Person` entity. |
+  | P800 notable work | `Q141170741` | Volume One is done. Volume Two is not — the notable-work list should hold both. |
+  | P1830 owner of *or* P108 employer | `Q141171005` | The reciprocal of `founder`. `Q141171005` points at her; she does not point back. |
 
   Worth knowing: WikiData items about living people need a serious, publicly available
-  source to survive a notability challenge. The item has no references on it at the moment.
-  If it is ever deleted, the `sameAs` entry becomes a dead link — so the published cookbooks
-  are worth citing on it.
+  source to survive a notability challenge. Only two statements on the item carry references
+  at the moment. If the item is ever deleted, the `sameAs` entry becomes a dead link — so the
+  published cookbooks are worth citing on it.
 
-  Also still missing from the person item: **P800 notable work → Q141124581**. The book item
-  points at her; she does not point back at it.
+- **WikiData, the book items.** `Q141124581` is *Volume One* — `instance of: written work`,
+  `author: Q138577229`, title and subtitle as separate statements, published 2024-10-01,
+  Goodreads work ID `301149132`, official website the Volume One page.
 
-- **WikiData, the book items.** `Q141124581` is *The Carrot Underground Cookbook - Volume
-  One* — `instance of: book`, `author: Q138577229`, title and subtitle as separate
-  statements, published 2024-10-01, Goodreads work ID `301149132`, official website the
-  Volume One page. It is in that book's `sameAs`.
+  `Q141170741` is *Volume Two*, created 2026-08-26 — `instance of: cookbook`,
+  `author: Q138577229`, published 2024-11-01, 70 pages. Both are now in their book's `sameAs`,
+  and a test asserts the two volumes carry *different* Q numbers, the same way it asserts they
+  carry different Play Books ids.
 
-  **There is no item for Volume Two yet.** Searching WikiData for it returns nothing. When
-  one exists, add its URL to the Volume Two `sameAs` in `tcu_person_schema_books()`. There
-  is a test asserting WikiData is only listed where an item actually exists, so the current
-  asymmetry is deliberate rather than an oversight.
+  Two things are worth tidying on the pair:
 
-- **The Organization has no WikiData item either.** *The Carrot Underground* itself returns
-  no results. Creating one, with `founded by → Q138577229`, would give the brand the same
-  kind of direct Knowledge Graph anchor the person already has.
+  - **The Goodreads identifier is `P8383 Goodreads work ID`, not `P2969`.** That is the whole
+    explanation for the edition constraint. `P2969` is *Goodreads version/edition ID* and its
+    subject-type constraint is `version, edition or translation` — so on a work item it
+    correctly complains that it wants `edition or translation of`. `P8383` has a subject-type
+    constraint of `written work`, which `cookbook → book → written work` satisfies, so it
+    applies cleanly with no edition item needed. Volume One already uses `P8383`.
+    **Volume Two's Goodreads work ID is `301149201`** (read off its Goodreads page; the same
+    method returns `301149132` for Volume One, which is exactly what is already on
+    `Q141124581` — that agreement is the control).
+  - **Google Books `P675` is genuinely edition-level** and is the one to leave off. It carries
+    two conflicting subject-type constraints, one of which is edition-only, so it will warn on
+    a work item no matter what. Nothing is lost by skipping it: the Play Books URL is already
+    published directly in the book's `sameAs` in the markup, which is where Google reads it.
+  - The two volumes are typed differently — Volume One is `instance of: written work`, Volume
+    Two is `instance of: cookbook`. Both are valid; making them match is cosmetic.
+
+- **WikiData, the Organization.** `Q141171005`, created 2026-08-26 — `instance of: website`,
+  `founder: Q138577229`, official website, inception 2018, United States, English, and the
+  Facebook, Instagram, Pinterest and YouTube handles. It is now published in the
+  Organization's `sameAs` on every page.
+
+  **One correction needed: `P2397 YouTube channel ID` on that item is wrong.** It reads
+  `UC0I81mHV9MdJXko-yrVphug` with a capital letter `I`; the real channel is
+  `UC0l81mHV9MdJXko-yrVphug` with a lowercase letter `L`. The two are indistinguishable in
+  most fonts. Fetching the feed for the capital-I version returns a 404; the lowercase-L
+  version returns a feed titled "The Carrot Underground". The markup has always used the
+  correct one, so only the WikiData item needs changing.
 
 ---
 
@@ -420,7 +458,7 @@ hand Google the same entity on every URL with no single place that owns it.
 php tests/test-person-schema.php
 ```
 
-213 assertions, no WordPress or Yoast install required. (`tests/test-book-on-own-page.php`
+224 assertions, no WordPress or Yoast install required. (`tests/test-book-on-own-page.php`
 runs as a second process because it has to redefine the book list before the plugin loads;
 the main suite invokes it and folds in its results.) The WordPress functions the snippet
 calls are stubbed and the filter is run against three fixtures — the real `@graph` captured
@@ -463,7 +501,8 @@ Covered:
 - the About page carries a *reference* to each book, not a second copy of the definition
 - the two volumes carry different Play Books ids and different titles — pasting the same one
   twice is the easy mistake, and it would merge the two books into one entity
-- WikiData is listed only on the volume that actually has an item
+- each volume carries its own WikiData item, and the two Q numbers differ
+- the brand's WikiData item is added to the Organization and never listed twice
 - no `isRelatedTo` on a `Book`; the series link is `isPartOf` / `hasPart`
 - no press article is ever credited to Connie as `author`, each is linked to her via
   `mentions`, and the two articles that do not mention her stay out of the graph

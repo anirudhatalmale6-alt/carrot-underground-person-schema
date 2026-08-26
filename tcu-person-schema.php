@@ -9,7 +9,7 @@
  *
  *               Also gives each cookbook a Book entity on its own page, and keeps the
  *               personal profiles on the Person and the brand profiles on the Organization.
- * Version:      1.1.0
+ * Version:      1.2.0
  * Author:       PonyTechSolutions
  * Requires PHP: 7.4
  *
@@ -114,6 +114,22 @@ define( 'TCU_BOOK_SERIES_ID', 'https://thecarrotunderground.com/#/schema/series/
 define( 'TCU_BOOK_SERIES_NAME', 'The Carrot Underground Cookbook' );
 
 /**
+ * Publish the brand's own profiles on the Organization node.
+ *
+ * The counterpart to TCU_SPLIT_ORG_SAMEAS. That one takes Connie's personal profiles
+ * off the Organization; this one puts the brand's own back on, for profiles Yoast has
+ * no field for. Purely additive, and it never adds a URL the node already carries.
+ *
+ * The list is tcu_person_schema_brand_profiles() below.
+ *
+ * As with the split, the tidier permanent home for anything here is Yoast -> Settings
+ * -> Site representation -> Other profiles. Doing it in this file means the connection
+ * exists on every page today without waiting on a settings change, and adding it in
+ * Yoast later is harmless - the duplicate check means it will not be listed twice.
+ */
+define( 'TCU_ADD_ORG_PROFILES', true );
+
+/**
  * Profiles that identify Connie the person, as opposed to The Carrot Underground
  * the brand.
  *
@@ -143,6 +159,25 @@ function tcu_person_schema_personal_profiles() {
 		'https://www.linkedin.com/in/connie-edwards-mcgaughy',
 		'https://www.goodreads.com/author/show/71756303.Connie_Edwards_McGaughy',
 		'https://x.com/veganconnie',
+	);
+}
+
+/**
+ * Profiles that identify The Carrot Underground the brand, as opposed to Connie.
+ *
+ * Only what Yoast has no field for belongs here. Facebook, Instagram, Pinterest and
+ * YouTube are already published as the Organization's sameAs from Yoast's own settings,
+ * so repeating them would only risk the two lists disagreeing later.
+ *
+ * Q141171005 - the WikiData item for the site, created 2026-08-26. Its founder statement
+ * points at Q138577229, and the Person here carries Q138577229 in its own sameAs, so the
+ * Person <-> Organization relationship is now asserted on both sides in schema.org AND
+ * in WikiData, pointing at each other. That mutual agreement is the part Google's
+ * Knowledge Graph actually reads.
+ */
+function tcu_person_schema_brand_profiles() {
+	return array(
+		'https://www.wikidata.org/wiki/Q141171005',
 	);
 }
 
@@ -279,9 +314,10 @@ function tcu_person_schema_books() {
 			'about'          => 'Vegan baking',
 			'price'          => '9.99',
 
-			// No WikiData item for this volume yet - Volume One has one, this does not.
-			// Add it here once it exists.
 			'sameAs'         => array(
+				// Q141170741 - the WikiData item for this volume, created 2026-08-26.
+				// Like Volume One's, its author statement points at Q138577229.
+				'https://www.wikidata.org/wiki/Q141170741',
 				'https://www.goodreads.com/book/show/256793045-the-carrot-underground-cookbook---volume-two',
 				'https://play.google.com/store/books/details?id=OzX1EQAAQBAJ',
 			),
@@ -672,6 +708,46 @@ function tcu_person_schema_split_org_sameas( array $graph ) {
 }
 
 /**
+ * Put the brand's own profiles on the Organization node.
+ *
+ * The additive counterpart to tcu_person_schema_split_org_sameas(). Runs after it, so
+ * anything listed here survives the split even if it were also named as personal.
+ *
+ * Never adds a URL the node already carries, compared the same slash-and-case-insensitive
+ * way as the split - so adding one of these to Yoast's Other profiles later does not
+ * produce the same profile twice.
+ */
+function tcu_person_schema_add_org_profiles( array $graph ) {
+	if ( ! TCU_ADD_ORG_PROFILES ) {
+		return $graph;
+	}
+
+	$index = tcu_person_schema_find_node_index( $graph, TCU_ORGANIZATION_ID );
+
+	if ( null === $index ) {
+		return $graph;
+	}
+
+	// The node may have no sameAs at all - that is a valid starting point, not a reason
+	// to bail, which is why this cannot just be folded into the split above.
+	$current  = isset( $graph[ $index ]['sameAs'] ) ? array_values( (array) $graph[ $index ]['sameAs'] ) : array();
+	$existing = array_map( 'tcu_person_schema_normalise_url', $current );
+
+	foreach ( tcu_person_schema_brand_profiles() as $url ) {
+		if ( ! in_array( tcu_person_schema_normalise_url( $url ), $existing, true ) ) {
+			$current[]  = $url;
+			$existing[] = tcu_person_schema_normalise_url( $url );
+		}
+	}
+
+	if ( ! empty( $current ) ) {
+		$graph[ $index ]['sameAs'] = $current;
+	}
+
+	return $graph;
+}
+
+/**
  * Compare URLs without tripping over a trailing slash or a capital letter in the host.
  */
 function tcu_person_schema_normalise_url( $url ) {
@@ -710,6 +786,7 @@ function tcu_person_schema_filter_graph( $graph, $context = null ) {
 
 	// The Organization node is emitted on every page, so this runs on every page.
 	$graph = tcu_person_schema_split_org_sameas( $graph );
+	$graph = tcu_person_schema_add_org_profiles( $graph );
 
 	$is_profile = tcu_person_schema_is_target_page();
 	$books      = tcu_person_schema_books_for_this_page();

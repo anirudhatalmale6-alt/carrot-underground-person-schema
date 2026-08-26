@@ -228,6 +228,34 @@ is_same(
 $lost = array_values( array_diff( $org_before['sameAs'], $org_after['sameAs'], $person['sameAs'] ) );
 is_same( $lost, array(), 'every profile removed from the Organization reappears on the Person - none is simply dropped' );
 
+// The other half: the brand's own WikiData item goes ON to the Organization.
+$brand_profiles = tcu_person_schema_brand_profiles();
+ok( ! empty( $brand_profiles ), 'there is at least one brand profile to add (otherwise the next assertions prove nothing)' );
+
+foreach ( $brand_profiles as $brand ) {
+	// Control first: it genuinely was not there before, so "it is there after" means
+	// this file put it there rather than Yoast having had it all along.
+	ok( ! in_array( $brand, $org_before['sameAs'], true ), "$brand was NOT on the Organization before (control)" );
+	ok( in_array( $brand, $org_after['sameAs'], true ), "$brand is added to the Organization" );
+	ok( ! in_array( $brand, $person['sameAs'], true ), "$brand is not also claimed by the Person" );
+}
+
+// The brand item and the Person item are different entities. Pointing both sameAs
+// lists at the same WikiData item would merge Connie and the site into one thing.
+is_same(
+	array_values( array_intersect( $brand_profiles, $person['sameAs'] ) ),
+	array(),
+	'the brand WikiData item and the Person WikiData item are not the same item'
+);
+
+// Adding the same profile twice is the failure mode once Yoast also lists it.
+$org_twice = tcu_person_schema_add_org_profiles( $after );
+is_same(
+	node_by_id( $org_twice, TCU_ORGANIZATION_ID )['sameAs'],
+	$org_after['sameAs'],
+	'running the brand-profile step again adds nothing - no profile is listed twice'
+);
+
 $profile_before = node_by_type( $before, 'ProfilePage' );
 $profile_after  = node_by_type( $after, 'ProfilePage' );
 unset( $profile_after['mainEntity'], $profile_after['mentions'], $profile_after['citation'] );
@@ -535,7 +563,7 @@ $book_pages = array(
 		'sibling'  => 'https://thecarrotunderground.com/#/schema/book/carrot-underground-cookbook-volume-two',
 		'url'      => 'https://thecarrotunderground.com/the-carrot-underground-cookbook-vol-1/',
 		'pages'    => 63,
-		'wikidata' => true,
+		'wikidata' => 'https://www.wikidata.org/wiki/Q141124581',
 	),
 	array(
 		'label'    => 'Volume Two',
@@ -545,11 +573,12 @@ $book_pages = array(
 		'sibling'  => 'https://thecarrotunderground.com/#/schema/book/carrot-underground-cookbook-volume-one',
 		'url'      => 'https://thecarrotunderground.com/the-carrot-underground-cookbook-vol-2/',
 		'pages'    => 70,
-		'wikidata' => false,
+		'wikidata' => 'https://www.wikidata.org/wiki/Q141170741',
 	),
 );
 
-$GLOBALS['play_ids']  = array();
+$GLOBALS['play_ids']     = array();
+$GLOBALS['wikidata_ids'] = array();
 $GLOBALS['book_names'] = array();
 
 foreach ( $book_pages as $case ) {
@@ -609,8 +638,12 @@ foreach ( $book_pages as $case ) {
 	$gr = array_values( array_filter( $book['sameAs'], function ( $u ) { return false !== strpos( $u, 'goodreads.com' ); } ) );
 	is_same( count( $gr ), 1, "$label: has exactly one Goodreads listing" );
 
+	// Each volume has its OWN WikiData item now. As with the Play Books ids, listing
+	// the same Q number on both is the mistake that would merge them into one book.
 	$wd = array_values( array_filter( $book['sameAs'], function ( $u ) { return false !== strpos( $u, 'wikidata.org' ); } ) );
-	is_same( count( $wd ), $case['wikidata'] ? 1 : 0, "$label: WikiData listed only where an item actually exists" );
+	is_same( count( $wd ), 1, "$label: has exactly one WikiData item" );
+	is_same( $wd[0], $case['wikidata'], "$label: and it is that volume's own item" );
+	$GLOBALS['wikidata_ids'][] = $wd[0];
 
 	// The sibling volume: linked from the page, so linked in the graph.
 	$sibling = node_by_id( $page_after, $case['sibling'] );
@@ -643,6 +676,11 @@ foreach ( $book_pages as $case ) {
 		array(),
 		"$label: the Organization sameAs is separated here too"
 	);
+	is_same(
+		array_values( array_diff( tcu_person_schema_brand_profiles(), $org['sameAs'] ) ),
+		array(),
+		"$label: and the brand WikiData item is published here too - the Organization travels site-wide"
+	);
 
 	is_same( dangling_refs( $page_after ), array(), "$label: no dangling references" );
 	is_same( tcu_person_schema_filter_graph( $page_after ), $page_after, "$label: a second pass is a no-op" );
@@ -670,6 +708,11 @@ is_same(
 	count( array_unique( $GLOBALS['book_names'] ) ),
 	2,
 	'and carry different titles, not the same string pasted twice'
+);
+is_same(
+	count( array_unique( $GLOBALS['wikidata_ids'] ) ),
+	2,
+	'and different WikiData items, not the same Q number pasted twice'
 );
 
 /* ---------------------------------------------------------------- *
