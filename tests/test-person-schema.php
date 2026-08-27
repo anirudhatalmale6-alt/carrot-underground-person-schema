@@ -612,6 +612,14 @@ foreach ( $book_pages as $case ) {
 
 	// The page and the book agree about each other, in both directions.
 	$page_node = node_by_type( $page_after, 'WebPage' );
+
+	// Yoast's per-page "Page type" setting. This is a WP admin choice, not something this
+	// file controls, so the assertion is on the FIXTURE - it fails if a future capture is
+	// taken from a page whose type has been reset to a plain WebPage.
+	ok(
+		in_array( 'ItemPage', (array) node_by_type( $page_before, 'WebPage' )['@type'], true ),
+		"$label: the page is typed ItemPage in Yoast, so the Book is the thing this page is about"
+	);
 	is_same( $page_node['mainEntity'], array( '@id' => $case['book'] ), "$label: the page declares the Book as its mainEntity" );
 	is_same( $book['mainEntityOfPage'], array( '@id' => $case['url'] ), "$label: and the Book points back at the page" );
 

@@ -1,6 +1,9 @@
 [
     {
-        "@type": "WebPage",
+        "@type": [
+            "WebPage",
+            "ItemPage"
+        ],
         "@id": "https://thecarrotunderground.com/the-carrot-underground-cookbook-vol-2/",
         "url": "https://thecarrotunderground.com/the-carrot-underground-cookbook-vol-2/",
         "name": "Carrot Underground Cookbook Vol. 2 | Connie Edwards McGaughy",
@@ -15,7 +18,7 @@
         },
         "thumbnailUrl": "https://thecarrotunderground.com/wp-content/uploads/2026/08/TCU-cookbook-volume-two-cover.jpg",
         "datePublished": "2026-08-22T04:16:41+00:00",
-        "dateModified": "2026-08-22T23:07:14+00:00",
+        "dateModified": "2026-08-26T23:17:08+00:00",
         "description": "The Carrot Underground Cookbook Volume Two features 35 vegan baking recipes, tips, and guides for desserts and treats made without eggs or dairy.",
         "breadcrumb": {
             "@id": "https://thecarrotunderground.com/the-carrot-underground-cookbook-vol-2/#breadcrumb"

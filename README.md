@@ -391,23 +391,30 @@ hand Google the same entity on every URL with no single place that owns it.
   occupations, US citizenship, San Diego as residence, and `official website` →
   `thecarrotunderground.com`.
 
-  The earlier round of external-ID suggestions has now partly been superseded, because the
-  brand has its own item. **The brand handles belong on `Q141171005`, not on the person** —
-  P2003, P2013, P2397 and P3836 are all on the Organization item already, which is correct.
-  What is still missing from the *person* item, and is still worth adding, is the short list
-  that identifies Connie rather than the site:
+  The earlier round of external-ID suggestions was partly superseded once the brand got its
+  own item. **The brand handles belong on `Q141171005`, not on the person** — P2003, P2013,
+  P2397 and P3836 are all on the Organization item, which is correct.
 
-  | Property | Value | Why it is still worth adding |
+  The person-level identifiers were added on 2026-08-27 and verified against the live item:
+
+  | Property | Value | State |
   | --- | --- | --- |
-  | P2963 Goodreads author ID | `71756303` | The one identifier that closes the loop on `goodreads.com/author/show/71756303…` in her `sameAs`. |
-  | P6634 LinkedIn personal profile ID | `connie-edwards-mcgaughy` | Same, for the LinkedIn entry. |
-  | P2002 X/Twitter username | `veganconnie` | Only if that account posts as Connie — see the caveat under *Person profiles vs brand profiles*. |
-  | P973 described at URL | `https://thecarrotunderground.com/about-connie-edwards-mcgaughy/` | Points the item at the page that carries the `Person` entity. |
-  | P800 notable work | `Q141170741` | Volume One is done. Volume Two is not — the notable-work list should hold both. |
-  | P1830 owner of *or* P108 employer | `Q141171005` | The reciprocal of `founder`. `Q141171005` points at her; she does not point back. |
+  | P2963 Goodreads author ID | `71756303` | Present. Closes the loop on `goodreads.com/author/show/71756303…` in her `sameAs`. |
+  | P6634 LinkedIn personal profile ID | `connie-edwards-mcgaughy` | Present. |
+  | P973 described at URL | `https://thecarrotunderground.com/about-connie-edwards-mcgaughy/` | Present, with an English language qualifier. Points the item at the page that carries the `Person` entity. |
+  | P800 notable work | `Q141124581` and `Q141170741` | Both volumes present, both with references. |
+  | P2002 X/Twitter username | `veganconnie` | Still open, deliberately. Only add it if that account posts as Connie rather than as the brand — see the caveat under *Person profiles vs brand profiles*. |
+
+  **P1830 owner of / P108 employer were considered and left off, which is the right call.**
+  `Q141171005 → founder → Q138577229` already states the relationship, and WikiData is queried
+  in both directions, so a reciprocal statement adds no reachability. P108 would be actively
+  wrong: *employer* asserts an employment relationship with a separate legal employer, which
+  is not what a self-published personal brand is. If the *ownership* fact is ever wanted
+  specifically, the cleaner way to say it is `P127 owned by` on the Organization item, because
+  the site is the thing being owned — not `P1830` on the person.
 
   Worth knowing: WikiData items about living people need a serious, publicly available
-  source to survive a notability challenge. Only two statements on the item carry references
+  source to survive a notability challenge. Only a few statements on the item carry references
   at the moment. If the item is ever deleted, the `sameAs` entry becomes a dead link — so the
   published cookbooks are worth citing on it.
 
@@ -416,11 +423,23 @@ hand Google the same entity on every URL with no single place that owns it.
   Goodreads work ID `301149132`, official website the Volume One page.
 
   `Q141170741` is *Volume Two*, created 2026-08-26 — `instance of: cookbook`,
-  `author: Q138577229`, published 2024-11-01, 70 pages. Both are now in their book's `sameAs`,
-  and a test asserts the two volumes carry *different* Q numbers, the same way it asserts they
-  carry different Play Books ids.
+  `author: Q138577229`, published 2024-11-01, 70 pages, Goodreads work ID `301149201` added
+  2026-08-27. Both are now in their book's `sameAs`, and a test asserts the two volumes carry
+  *different* Q numbers, the same way it asserts they carry different Play Books ids.
 
-  Two things are worth tidying on the pair:
+  **The two items are not symmetric, and each is missing something the other has.** Nothing is
+  broken — this is a completeness gap, and it matters because a sparse item is the kind that
+  loses a notability challenge:
+
+  | | Volume One `Q141124581` | Volume Two `Q141170741` |
+  | --- | --- | --- |
+  | P1476 title | present | **missing** |
+  | P1680 subtitle | present | **missing** — `How to Bake the Best Vegan Desserts and Treats` |
+  | P495 country of origin | present (United States) | **missing** |
+  | P856 official website | present | **missing** — should be the Volume Two page |
+  | P1104 number of pages | **missing** — 63 | present (70) |
+
+  Two more things are worth tidying on the pair:
 
   - **The Goodreads identifier is `P8383 Goodreads work ID`, not `P2969`.** That is the whole
     explanation for the edition constraint. `P2969` is *Goodreads version/edition ID* and its
@@ -430,25 +449,31 @@ hand Google the same entity on every URL with no single place that owns it.
     applies cleanly with no edition item needed. Volume One already uses `P8383`.
     **Volume Two's Goodreads work ID is `301149201`** (read off its Goodreads page; the same
     method returns `301149132` for Volume One, which is exactly what is already on
-    `Q141124581` — that agreement is the control).
+    `Q141124581` — that agreement is the control). Added to `Q141170741` on 2026-08-27 and
+    confirmed present.
   - **Google Books `P675` is genuinely edition-level** and is the one to leave off. It carries
     two conflicting subject-type constraints, one of which is edition-only, so it will warn on
     a work item no matter what. Nothing is lost by skipping it: the Play Books URL is already
     published directly in the book's `sameAs` in the markup, which is where Google reads it.
-  - The two volumes are typed differently — Volume One is `instance of: written work`, Volume
-    Two is `instance of: cookbook`. Both are valid; making them match is cosmetic.
+  - The two volumes are typed differently — Volume One is `instance of: written work`
+    (`Q47461344`), Volume Two is `instance of: cookbook` (`Q605076`). Both are valid, but they
+    are not equally useful: `cookbook → book → written work` is a subclass chain, so `cookbook`
+    says everything `written work` says *and* what kind of book it is. Volume One is the one to
+    change, not Volume Two.
 
 - **WikiData, the Organization.** `Q141171005`, created 2026-08-26 — `instance of: website`,
   `founder: Q138577229`, official website, inception 2018, United States, English, and the
   Facebook, Instagram, Pinterest and YouTube handles. It is now published in the
   Organization's `sameAs` on every page.
 
-  **One correction needed: `P2397 YouTube channel ID` on that item is wrong.** It reads
-  `UC0I81mHV9MdJXko-yrVphug` with a capital letter `I`; the real channel is
+  **`P2397 YouTube channel ID` on that item was wrong and has been corrected** (2026-08-27).
+  It read `UC0I81mHV9MdJXko-yrVphug` with a capital letter `I`; the real channel is
   `UC0l81mHV9MdJXko-yrVphug` with a lowercase letter `L`. The two are indistinguishable in
-  most fonts. Fetching the feed for the capital-I version returns a 404; the lowercase-L
-  version returns a feed titled "The Carrot Underground". The markup has always used the
-  correct one, so only the WikiData item needs changing.
+  most fonts, so this was found by resolving both rather than by reading them: fetching
+  `youtube.com/feeds/videos.xml?channel_id=…` returns a 404 for the capital-I version and a
+  feed titled "The Carrot Underground" for the lowercase-L one. Both were re-run after the fix
+  — the item now carries the value that resolves, and the 404 on the old value is the control
+  proving the two really are different strings. The markup always used the correct one.
 
 ---
 
@@ -458,7 +483,7 @@ hand Google the same entity on every URL with no single place that owns it.
 php tests/test-person-schema.php
 ```
 
-224 assertions, no WordPress or Yoast install required. (`tests/test-book-on-own-page.php`
+226 assertions, no WordPress or Yoast install required. (`tests/test-book-on-own-page.php`
 runs as a second process because it has to redefine the book list before the plugin loads;
 the main suite invokes it and folds in its results.) The WordPress functions the snippet
 calls are stubbed and the filter is run against three fixtures — the real `@graph` captured
@@ -503,6 +528,8 @@ Covered:
   twice is the easy mistake, and it would merge the two books into one entity
 - each volume carries its own WikiData item, and the two Q numbers differ
 - the brand's WikiData item is added to the Organization and never listed twice
+- both book pages are typed `ItemPage` in Yoast, asserted on the captured fixture — this one
+  guards a WordPress setting rather than this file's own output
 - no `isRelatedTo` on a `Book`; the series link is `isPartOf` / `hasPart`
 - no press article is ever credited to Connie as `author`, each is linked to her via
   `mentions`, and the two articles that do not mention her stay out of the graph
@@ -523,9 +550,11 @@ easy wins:
   Now that both cookbooks have pages on the site, that phrase should link to them instead.
   An internal link from the profile page to each book page is exactly the path Google
   follows to connect the entities.
-- **Volume Two's page is not set as an Item Page in Yoast.** Volume One's page node comes out
-  as `["WebPage", "ItemPage"]`; Volume Two's is plain `WebPage`. That is the *Page type*
-  setting in the Yoast box on the page editor. Harmless, but they should match.
+- ~~**Volume Two's page is not set as an Item Page in Yoast.**~~ Fixed 2026-08-27. Both book
+  pages now come out as `["WebPage", "ItemPage"]`, and the validator types both as
+  *WebPage / ItemPage*. The Volume Two fixture has been recaptured to match, and a test now
+  asserts the `ItemPage` type on the fixture so a future capture from a page whose *Page type*
+  has been reset back to a plain Web Page fails loudly instead of silently.
 - **A tracking parameter on the Volume One page's Goodreads link.** The "Goodreads ↗" link
   ends `?utm_source=chatgpt.com`. Worth stripping — the clean URL is what is in `sameAs`.
 - **Cache.** The site is on BigScoots O2O with an `s-maxage` of a year in front of Cloudflare.
