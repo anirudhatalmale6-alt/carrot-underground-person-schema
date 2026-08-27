@@ -418,28 +418,50 @@ hand Google the same entity on every URL with no single place that owns it.
   at the moment. If the item is ever deleted, the `sameAs` entry becomes a dead link — so the
   published cookbooks are worth citing on it.
 
-- **WikiData, the book items.** `Q141124581` is *Volume One* — `instance of: written work`,
-  `author: Q138577229`, title and subtitle as separate statements, published 2024-10-01,
-  Goodreads work ID `301149132`, official website the Volume One page.
-
-  `Q141170741` is *Volume Two*, created 2026-08-26 — `instance of: cookbook`,
-  `author: Q138577229`, published 2024-11-01, 70 pages, Goodreads work ID `301149201` added
-  2026-08-27. Both are now in their book's `sameAs`, and a test asserts the two volumes carry
-  *different* Q numbers, the same way it asserts they carry different Play Books ids.
-
-  **The two items are not symmetric, and each is missing something the other has.** Nothing is
-  broken — this is a completeness gap, and it matters because a sparse item is the kind that
-  loses a notability challenge:
+- **WikiData, the book items — now symmetric.** As of 2026-08-27 both items carry the same
+  nine statements and differ only in their values:
 
   | | Volume One `Q141124581` | Volume Two `Q141170741` |
   | --- | --- | --- |
-  | P1476 title | present | **missing** |
-  | P1680 subtitle | present | **missing** — `How to Bake the Best Vegan Desserts and Treats` |
-  | P495 country of origin | present (United States) | **missing** |
-  | P856 official website | present | **missing** — should be the Volume Two page |
-  | P1104 number of pages | **missing** — 63 | present (70) |
+  | P31 instance of | cookbook `Q605076` | cookbook `Q605076` |
+  | P50 author | `Q138577229` | `Q138577229` |
+  | P1476 title | Volume One | Volume Two |
+  | P1680 subtitle | *How to Host Plant-Based Parties Everyone Will Love* | *How to Bake the Best Vegan Desserts and Treats* |
+  | P577 publication date | 2024-10-01 | 2024-11-01 |
+  | P407 language | English | English |
+  | P495 country of origin | United States | United States |
+  | P8383 Goodreads work ID | `301149132` | `301149201` |
+  | P856 official website | Volume One page | Volume Two page |
 
-  Two more things are worth tidying on the pair:
+  Both are in their book's `sameAs`, and a test asserts the two volumes carry *different*
+  Q numbers, the same way it asserts they carry different Play Books ids.
+
+  **`P1104 number of pages` is correctly absent from both.** It is an edition-level property —
+  its own description says "number of pages in an edition of a written work" — and the
+  constraint statements make that binding in two independent directions:
+
+  - `P1104` declares a *conflicts-with* constraint against `P8383 Goodreads work ID`
+    (`P2302 → Q21502838`, qualifier `P2306 = P8383`, no value list, so it fires on any `P8383`
+    statement at all).
+  - `P495 country of origin` declares its own *conflicts-with* constraint against `P1104`
+    (qualifier `P2306 = P1104`). That is not an isolated rule: `P495` conflicts with `P2969`
+    (Goodreads edition ID), `P629` (edition or translation of), `P957` (ISBN-10) and `P212`
+    (ISBN-13) too. `P495` is a work-level property and it is defined to conflict with the whole
+    edition-level family.
+
+  So on an item that is a *work* carrying a Goodreads **work** ID and a country of origin,
+  `P1104` cannot be added without tripping a constraint — from either side. The properly
+  modelled home for a page count is a separate edition item (`P31 = Q3331189 version, edition
+  or translation`, `P629 →` the work), which `P1104`'s own constraint message spells out. That
+  is not worth creating here: two self-published ebooks with one edition each would double the
+  item count and the maintenance for no reachability gain.
+
+  Nothing is lost by leaving it off, because **the page counts are published on the site**,
+  where Google actually reads them. `schema.org` has no work/edition split, so `numberOfPages`
+  on a `Book` is unconstrained and both values are live in the markup:
+  Volume One `numberOfPages: 63`, Volume Two `numberOfPages: 70`.
+
+  Two more things are worth knowing about the pair:
 
   - **The Goodreads identifier is `P8383 Goodreads work ID`, not `P2969`.** That is the whole
     explanation for the edition constraint. `P2969` is *Goodreads version/edition ID* and its
@@ -455,11 +477,11 @@ hand Google the same entity on every URL with no single place that owns it.
     two conflicting subject-type constraints, one of which is edition-only, so it will warn on
     a work item no matter what. Nothing is lost by skipping it: the Play Books URL is already
     published directly in the book's `sameAs` in the markup, which is where Google reads it.
-  - The two volumes are typed differently — Volume One is `instance of: written work`
-    (`Q47461344`), Volume Two is `instance of: cookbook` (`Q605076`). Both are valid, but they
-    are not equally useful: `cookbook → book → written work` is a subclass chain, so `cookbook`
-    says everything `written work` says *and* what kind of book it is. Volume One is the one to
-    change, not Volume Two.
+  - ~~The two volumes are typed differently — Volume One is `instance of: written work`.~~
+    Fixed 2026-08-27. Volume One is now `instance of: cookbook` (`Q605076`), matching Volume
+    Two. `cookbook → book → written work` is a subclass chain, so the new type says everything
+    `written work` said *and* what kind of book it is; every subject-type constraint that
+    accepted `written work` still resolves through the chain, `P8383` included.
 
 - **WikiData, the Organization.** `Q141171005`, created 2026-08-26 — `instance of: website`,
   `founder: Q138577229`, official website, inception 2018, United States, English, and the
@@ -539,6 +561,22 @@ All three generated graphs were run through `validator.schema.org`: **0 errors, 
 each, with the `Person` resolving from the `ProfilePage`'s `mainEntity` and each `Book` from
 its own page's.
 
+**Last verified against the live site 2026-08-27**, on fresh renders pulled past the BigScoots
+cache (`x-bigscoots-cache-status: BYPASS` on all three):
+
+| Page | Live nodes | Differences vs expected | `@id` references | Dangling | Validator |
+| --- | --- | --- | --- | --- | --- |
+| `/about-connie-edwards-mcgaughy/` | 15 | 0 | 31 | 0 | 0 errors, 0 warnings |
+| `…-cookbook-vol-1/` | 9 | 0 | 18 | 0 | 0 errors, 0 warnings |
+| `…-cookbook-vol-2/` | 9 | 0 | 18 | 0 | 0 errors, 0 warnings |
+
+The About page validates as *WebPage / ProfilePage*, both book pages as *WebPage / ItemPage*.
+
+The only field that had drifted since the previous capture was `dateModified` on the About and
+Volume One pages — Connie edited both that day to add the cookbook links and strip the tracking
+parameter. Yoast owns that field, so the fixtures were refreshed to match; establishing that
+noise floor is what lets the next real difference stand out instead of hiding in it.
+
 ---
 
 ## Site-side observations
@@ -546,17 +584,20 @@ its own page's.
 Not schema, and not changed by this file — but found while checking the new pages, and all
 easy wins:
 
-- **The About page still links "my first two vegan e-cookbooks" to the Shopify store root.**
-  Now that both cookbooks have pages on the site, that phrase should link to them instead.
-  An internal link from the profile page to each book page is exactly the path Google
-  follows to connect the entities.
+- ~~**The About page has no internal link to either cookbook page.**~~ Fixed 2026-08-27. The
+  sentence now reads "my first two vegan e-cookbooks, **Volume One** and **Volume Two**", with
+  each volume name linking to its own page — anchor text that names the entity, which is
+  better than linking the generic phrase. That is the path Google follows from the profile
+  page to each book. "vegan e-cookbooks" still points at the Shopify store root, which is
+  correct: it is the shop link, and the two named volumes carry the entity links.
 - ~~**Volume Two's page is not set as an Item Page in Yoast.**~~ Fixed 2026-08-27. Both book
   pages now come out as `["WebPage", "ItemPage"]`, and the validator types both as
   *WebPage / ItemPage*. The Volume Two fixture has been recaptured to match, and a test now
   asserts the `ItemPage` type on the fixture so a future capture from a page whose *Page type*
   has been reset back to a plain Web Page fails loudly instead of silently.
-- **A tracking parameter on the Volume One page's Goodreads link.** The "Goodreads ↗" link
-  ends `?utm_source=chatgpt.com`. Worth stripping — the clean URL is what is in `sameAs`.
+- ~~**A tracking parameter on the Volume One page's Goodreads link.**~~ Fixed 2026-08-27. The
+  link now ends `…-volume-one` with no query string, matching the URL in `sameAs`. A grep for
+  `utm_source=chatgpt` across all three pages returns zero.
 - **Cache.** The site is on BigScoots O2O with an `s-maxage` of a year in front of Cloudflare.
   After replacing the plugin file, purge from the BigScoots menu in the WP admin bar before
   validating anything, or you will be reading a stale page.
